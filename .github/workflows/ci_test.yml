@@ -23,7 +23,14 @@ jobs:
       - name: Test with pytest
         run: |
           pytest --cov=. --cov-report xml
-      - name: Coveralls
-        uses: coverallsapp/github-action@v2
+      - name: Generate JaCoCo Badge
+        #      if: ${{ github.ref == 'refs/heads/master' }}
+        uses: cicirello/jacoco-badge-generator@v2
         with:
-          file: coverage.xml
+          jacoco-csv-file: build/reports/jacoco/test/jacocoTestReport.csv
+          badges-directory: build/reports/jacoco/test/html/badges
+      - name: Publish coverage report to GitHub Pages
+        #      if: ${{ github.ref == 'refs/heads/master' }}
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/reports/jacoco/test/html
