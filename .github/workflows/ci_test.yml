@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  COV_MIN: 50
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,4 +25,4 @@ jobs:
           pip install pytest pytest-cov ruff
       - name: Test with pytest
         run: |
-          pytest --cov=.
+          pytest --cov=. --cov-fail-under=$COV_MIN
