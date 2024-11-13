@@ -1,7 +1,7 @@
 [TOC]
 # Harmonic Densely Connected Network on medical images
 
-##Environment setup
+## Environment setup
 ### 1. Dependencies Installation
 #### Python
 The first step is to install Python 3.11. Make sure you are installing Python 3.11 (NOT 3.12); hence, we recommend heading to the link below.
