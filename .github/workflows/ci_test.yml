@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  COV_MIN: 50
+  COV_MIN: 60
 
 jobs:
   build:
