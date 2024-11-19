@@ -7,4 +7,4 @@ class TestMain(TestCase):
         assert get_five() == 5
 
     def test_get_four(self):
-        assert get_four() == 6
+        assert get_four() == 4
