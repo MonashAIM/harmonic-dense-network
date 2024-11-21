@@ -10,3 +10,4 @@ n_layers:
 downSamp:
   - [1, 0, 1, 0, 1, 0]
 drop_rate: 0.2
+depthwise: 0
