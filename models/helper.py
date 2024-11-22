@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 
-
 class InvertedTransition(nn.Module):
     def __init__(self, in_channel, out_channel, adapt=False, *args, **kwargs):
         super().__init__()
@@ -27,7 +26,7 @@ class InvertedTransition(nn.Module):
 
 
 class DWConvTransition(nn.Sequential):
-    def __init__(self, in_channels, kernel=3, stride=1, padding=0, bias=False):
+    def __init__(self, in_channels, kernel=3, stride=1, padding=1, bias=False):
         super().__init__()
         self.add_module(
             "dwconv",
@@ -55,7 +54,6 @@ class Conv(nn.Sequential):
         act="relu",
         kernel=3,
         stride=1,
-        padding=0,
         bias=False,
         *args,
         **kwargs,
@@ -68,7 +66,7 @@ class Conv(nn.Sequential):
                 out_channels=out_channel,
                 kernel_size=kernel,
                 stride=stride,
-                padding=padding,
+                padding=kernel//2,
                 bias=bias,
             ),
         )
@@ -95,10 +93,8 @@ class CombConv(nn.Sequential):
         in_channel,
         out_channel,
         act="relu",
-        kernel=3,
+        kernel=1,
         stride=1,
-        padding=0,
-        bias=False,
     ):
         super().__init__()
         self.add_module(
@@ -108,20 +104,17 @@ class CombConv(nn.Sequential):
                 out_channel,
                 act=act,
                 kernel=kernel,
-                stride=stride,
-                padding=padding,
-                bias=False,
             ),
         )
         self.add_module(
             "dwconv",
             DWConvTransition(
-                out_channel, kernel=kernel, stride=stride, padding=padding, bias=False
+                out_channel, stride=stride
             ),
         )
 
     def forward(self, x):
-        super().forward(x)
+        return super().forward(x)
 
 
 class HarDBlock(nn.Module):
@@ -143,8 +136,9 @@ class HarDBlock(nn.Module):
         self.keepbase = keepbase
         self.out_channels = 0
 
-        for i in range(1, n_layers + 1):
-            in_ch, out_ch, links = self.get_links(i, in_channels, k, m)
+        for i in range(n_layers):
+            in_ch, out_ch, links = self.get_links(i+1, in_channels, k, m)
+            # print(f'hardblock {i} {in_ch} {out_ch}')
             self.links.append(links)
 
             if dwconv:
@@ -159,7 +153,7 @@ class HarDBlock(nn.Module):
 
     def get_links(self, layer, base_ch, k, m):
         if layer == 0:
-            return base_ch, 0, []
+            return 0, base_ch, []
 
         out_ch = k
         links = []
@@ -176,11 +170,12 @@ class HarDBlock(nn.Module):
         in_ch = 0
 
         for j in links:
-            ch, _, _ = self.get_links(j, base_ch, k, m)
+            _, ch, _ = self.get_links(j, base_ch, k, m)
             in_ch += ch
         return in_ch, out_ch, links
 
     def get_out_ch(self):
+        # print(f'out ch {self.out_channels}')
         return self.out_channels
 
     def forward(self, x):
@@ -205,3 +200,4 @@ class HarDBlock(nn.Module):
                 out.append(layers[i])
         out = torch.cat(out, 1)
         return out
+
