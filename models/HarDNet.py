@@ -1,7 +1,7 @@
 import os
 import yaml
 import torch.nn as nn
-from helper import Conv, HarDBlock, DWConvTransition
+from models.helper import Conv, HarDBlock, DWConvTransition
 
 config_files = {
     '68': '68arch_config.yaml',
@@ -13,13 +13,12 @@ class HarDNet(nn.Module):
     def __init__(self, arch='68', act="relu", *args, **kwargs):
         super().__init__()
 
-        config_path = os.path.join("config", config_files[arch])
+        config_path = os.path.join(os.getcwd(), "models","configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 
         second_kernel = 3
         max_pool = True
-        
         first_ch = config.get("first_ch")[0]
         ch_list = config.get("ch_list")[0]
         gr = config.get("gr")[0]
