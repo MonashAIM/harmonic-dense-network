@@ -13,12 +13,13 @@ class HarDNet(nn.Module):
     def __init__(self, arch='68', act="relu", *args, **kwargs):
         super().__init__()
 
-        config_path = os.path.join("config", config_files[arch])
+        config_path = os.path.join("models", "configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 
         second_kernel = 3
         max_pool = True
+        init_ch = 1        
         
         first_ch = config.get("first_ch")[0]
         ch_list = config.get("ch_list")[0]
@@ -37,7 +38,7 @@ class HarDNet(nn.Module):
         blocks = len(n_layers)
         self.layers = nn.ModuleList([])
 
-        self.layers.append(Conv(13, first_ch[0], kernel=3, stride=2, bias=False))
+        self.layers.append(Conv(init_ch, first_ch[0], kernel=3, stride=2, bias=False))
         self.layers.append(Conv(first_ch[0], first_ch[1], kernel=second_kernel))
 
         if max_pool:
