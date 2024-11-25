@@ -1,17 +1,10 @@
-from data.ISLES_dataset import ISLESDataset
 from torch.utils.data import DataLoader
-
+from data.dataset_torchio import get_isles_22_dwi_subjects
+import torchio as tio
 if __name__ == "__main__":
-    dataset = ISLESDataset()
-    train_ds = DataLoader(dataset, 1, True)
-    for dwi_image, adc_image, flair_image, mask_image in train_ds:
-        print(dwi_image.shape)
-        print(mask_image.shape)
 
-
-def get_five() -> int:
-    return 5
-
-
-def get_four() -> int:
-    return 4
+    sj = get_isles_22_dwi_subjects()
+    torch_io_ds = tio.SubjectsDataset(sj)
+    print(len(torch_io_ds))
+    torch_io_dl = DataLoader(torch_io_ds, batch_size=8, shuffle=True)
+    print(len(torch_io_dl))
