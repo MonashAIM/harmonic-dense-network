@@ -6,3 +6,4 @@ pytest-cov==4.1.0
 ruff==0.7.3
 pyaml==24.9.0
 nibabel==5.3.2
+torchio==0.20.2
