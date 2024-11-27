@@ -12,7 +12,7 @@ class ModelTest(TestCase):
         out = model(x)
         self.assertEqual(out.shape, torch.Size([32, 1000]))
         #TODO: Determine what happens here
-        #self.assertEqual(len(model.layers), 15)
+        self.assertEqual(len(model.layers), 15)
 
     def test_model_68(self):
         model = HarDNet(arch='68')
@@ -22,7 +22,7 @@ class ModelTest(TestCase):
         out = model(x)
         self.assertEqual(out.shape, torch.Size([32, 1000]))
         #TODO: Determine what happens here
-        #self.assertEqual(len(model.layers), 15)
+        self.assertEqual(len(model.layers), 15)
 
     def test_model_85(self):
         model = HarDNet(arch='85')
