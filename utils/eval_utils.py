@@ -33,8 +33,8 @@ def compute_dice(im1, im2, empty_value=1.0):
     https://github.com/anjany/verse/blob/main/utils/eval_utilities.py
     """
 
-    im1 = np.asarray(im1).astype(np.bool)
-    im2 = np.asarray(im2).astype(np.bool)
+    im1 = np.asarray(im1).astype(bool)
+    im2 = np.asarray(im2).astype(bool)
 
     if im1.shape != im2.shape:
         raise ValueError("Shape mismatch: im1 and im2 must have the same shape.")
@@ -75,9 +75,9 @@ def compute_absolute_volume_difference(im1, im2, voxel_size):
     The order of inputs is irrelevant. The result will be identical if `im1` and `im2` are switched.
     """
 
-    im1 = np.asarray(im1).astype(np.bool)
-    im2 = np.asarray(im2).astype(np.bool)
-    voxel_size = voxel_size.astype(np.float)
+    im1 = np.asarray(im1).astype(bool)
+    im2 = np.asarray(im2).astype(bool)
+    voxel_size = voxel_size.astype(float)
 
     if im1.shape != im2.shape:
         warnings.warn(
@@ -115,8 +115,8 @@ def compute_absolute_lesion_difference(ground_truth, prediction, connectivity=26
     Notes
     -----
     """
-    ground_truth = np.asarray(ground_truth).astype(np.bool)
-    prediction = np.asarray(prediction).astype(np.bool)
+    ground_truth = np.asarray(ground_truth).astype(bool)
+    prediction = np.asarray(prediction).astype(bool)
 
     _, ground_truth_numb_lesion = cc3d.connected_components(
         ground_truth, connectivity=connectivity, return_N=True
@@ -159,8 +159,8 @@ def compute_lesion_f1_score(ground_truth, prediction, empty_value=1.0, connectiv
     fp: 3D connected-component from the prediction image that has no voxel overlapping with the ground-truth image.
     fn: 3d connected-component from the ground-truth image that has no voxel overlapping with the prediction image.
     """
-    ground_truth = np.asarray(ground_truth).astype(np.bool)
-    prediction = np.asarray(prediction).astype(np.bool)
+    ground_truth = np.asarray(ground_truth).astype(bool)
+    prediction = np.asarray(prediction).astype(bool)
     tp = 0
     fp = 0
     fn = 0
