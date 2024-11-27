@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 class InvertedTransition(nn.Module):
     def __init__(self, in_channel, out_channel, adapt=False, *args, **kwargs):
@@ -201,3 +202,72 @@ class HarDBlock(nn.Module):
         out = torch.cat(out, 1)
         return out
 
+
+
+class Up(nn.Module):
+    def __init__(self, in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, bilinear=True, *args, **kwargs):
+        super().__init__()
+        if bilinear:
+            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            self.conv = Conv(2*in_channels, in_channels, act=act, kernel=3, padding=1, bias=False)
+            self.block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase, bilinear=bilinear)
+        else:
+            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+            self.conv = Conv(in_channels, in_channels, act=act, kernel=3, padding=1, bias=False)
+            self.block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase, bilinear=bilinear)
+
+    def forward(self, x1, x2):
+        # print(f'Before up {x1.shape}')
+        x1 = self.up(x1) 
+        # Assuming input BCHW
+        # print(x1.shape, x2.shape)
+        diffY = x2.size()[2] - x1.size()[2]
+        diffX = x2.size()[3] - x1.size()[3]
+
+        # print(f'diff {diffX} and {diffY}')
+        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])
+
+        # print(f'Before concat {x1.shape} {x2.shape}')
+        x = torch.cat([x2, x1], dim=1)
+        # print(f'Input shape {x.shape}')
+        x = self.conv(x)
+
+        # print(f'Input shape block {x.shape}')
+        x = self.block(x)
+        # print(f'Output shape block {x.shape}')
+        return x
+    
+    def get_out_ch(self):
+        return self.block.get_out_ch()
+
+
+class Down(nn.Module):
+    def __init__(self, in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, dropout=0, *args, **kwargs):
+        super().__init__()
+        self.down = nn.ModuleList([
+            nn.MaxPool2d(2),
+            HarDBlock(in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False)
+        ])
+
+    def forward(self, x):
+        for layer in self.down:
+            # print(f'input shape: {x.shape}')
+            x = layer(x)
+            # print(f'{layer}: {x.shape}')
+        return x
+    
+    def get_out_ch(self):
+        return self.down[1].get_out_ch()
+    
+
+class Bottleneck(nn.Module):
+    def __init__(self, ch, act='relu',*args, **kwargs):
+        super().__init__()
+        self.layers = nn.Sequential(
+            Conv(ch, ch, act=act, kernel=3),
+            Conv(ch, ch, act=act, kernel=3)
+        )
+
+    def forward(self, x):
+        return self.layers(x)

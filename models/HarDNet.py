@@ -1,13 +1,9 @@
 import os
 import yaml
 import torch.nn as nn
-from models.helper import Conv, HarDBlock, DWConvTransition
+from helper import Conv, HarDBlock, DWConvTransition
+from config_dic import config_files
 
-config_files = {
-    '68': '68arch_config.yaml',
-    '85': '85arch_config.yaml',
-    '39DS': '39DSarch_config.yaml'
-}
 
 class HarDNet(nn.Module):
     def __init__(self, arch='68', act="relu", *args, **kwargs):
@@ -76,7 +72,5 @@ class HarDNet(nn.Module):
 
     def forward(self, x):
         for layer in self.layers:
-            # print(layer, x.shape)
             x = layer(x)
-            # print(f'out {x.shape}')
         return x
