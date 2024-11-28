@@ -10,6 +10,7 @@ class HarDUNet(nn.Module):
     def __init__(self, n_classes=1, arch='68', act='relu', transformer=False, keepbase=False, bilinear=True, *args, **kwargs):
         super().__init__()
         # Down and Up U-Net
+        self.classes = n_classes
         config_path = os.path.join(os.getcwd(), "models","configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
@@ -76,7 +77,7 @@ class HarDUNet(nn.Module):
         self.outc = nn.ModuleList([])
         self.outc.append(Conv(first_ch[1], first_ch[0], kernel=second_kernel))
         self.outc.append(Conv(first_ch[0], init_ch, kernel=3, stride=1, bias=False))
-        self.outc.append(Conv(init_ch, n_classes, kernel=1, stride=1, bias=False))
+        self.outc.append(Conv(init_ch, self.classes, kernel=1, stride=1, bias=False))
 
         # Bottleneck
         self.transformer = transformer
@@ -137,6 +138,9 @@ class HarDUNet(nn.Module):
         
         return x # If we want logits
         # return nn.Softmax(x) # If we want values
+
+    def get_classes(self):
+        return self.classes
     
 if __name__ == '__main__':
     # temp = torch.randn(size=(32, 1, 112, 112))
