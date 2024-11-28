@@ -1,8 +1,8 @@
 import os
 import yaml
 import torch.nn as nn
-from helper import Conv, HarDBlock, DWConvTransition
-from config_dic import config_files
+from models.helper import Conv, HarDBlock, DWConvTransition
+from models.config_dic import config_files
 
 
 class HarDNet(nn.Module):
