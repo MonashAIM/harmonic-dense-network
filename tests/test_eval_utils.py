@@ -1,4 +1,3 @@
-
 import nibabel as nib
 import numpy as np
 import os
@@ -33,13 +32,17 @@ class TestEvalUtils(TestCase):
         dice_score = eval_utils.compute_dice(mask_image, segmented_image)
 
         # Compute absolute volume difference
-        voxel_volume = np.prod(nib.load(dwi_path).header.get_zooms()) / 1000  # Get voxel volume
-        volume_diff =  eval_utils.compute_absolute_volume_difference(
-                    mask_image, segmented_image, voxel_volume
-                )
-        abs_ls_diff =  eval_utils.compute_absolute_lesion_difference(mask_image, segmented_image)
-        les_f1_count =  eval_utils.compute_lesion_f1_score(mask_image, segmented_image)
-        assert round(dice_score,2) == 0.17
+        voxel_volume = (
+            np.prod(nib.load(dwi_path).header.get_zooms()) / 1000
+        )  # Get voxel volume
+        volume_diff = eval_utils.compute_absolute_volume_difference(
+            mask_image, segmented_image, voxel_volume
+        )
+        abs_ls_diff = eval_utils.compute_absolute_lesion_difference(
+            mask_image, segmented_image
+        )
+        les_f1_count = eval_utils.compute_lesion_f1_score(mask_image, segmented_image)
+        assert round(dice_score, 2) == 0.17
         assert volume_diff == 10.32
         assert abs_ls_diff == 87
-        assert round(les_f1_count,2) == 0.25
+        assert round(les_f1_count, 2) == 0.25

@@ -1,21 +1,21 @@
 import os
 import yaml
 import torch.nn as nn
-from helper import Conv, HarDBlock, DWConvTransition
-from config_dic import config_files
+from models.helper import Conv, HarDBlock, DWConvTransition
+from models.config_dic import config_files
 
 
 class HarDNet(nn.Module):
-    def __init__(self, arch='68', act="relu", *args, **kwargs):
+    def __init__(self, arch="68", act="relu", *args, **kwargs):
         super().__init__()
 
-        config_path = os.path.join(os.getcwd(), "models","configs", config_files[arch])
+        config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 
         second_kernel = 3
         max_pool = True
-        init_ch = 1        
+        init_ch = 1
         first_ch = config.get("first_ch")[0]
         ch_list = config.get("ch_list")[0]
         gr = config.get("gr")[0]
@@ -47,7 +47,7 @@ class HarDNet(nn.Module):
             ch = block.get_out_ch()
             self.layers.append(block)
 
-            if (i == (blocks - 1)) and (arch=='85'):
+            if (i == (blocks - 1)) and (arch == "85"):
                 self.layers.append(nn.Dropout(drop_rate))
 
             self.layers.append(Conv(ch, ch_list[i], act=act, kernel=1))
@@ -64,7 +64,7 @@ class HarDNet(nn.Module):
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(),
                 nn.Dropout(drop_rate),
-                nn.Linear(ch, 1000)
+                nn.Linear(ch, 1000),
             )
         )
 

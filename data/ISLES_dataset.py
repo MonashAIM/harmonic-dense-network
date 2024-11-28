@@ -11,14 +11,16 @@ class ISLESDataset(Dataset):
 
         if sample_data:
             mask_path = os.path.join(
-                "data\\isles_22",
+                "data",
+                "isles_22",
                 "derivatives",
                 "sub-strokecase*",
                 "ses-*",
                 "sub-strokecase*_ses-*_msk.nii.gz",
             )
             img_path = os.path.join(
-                "data\\isles_22",
+                "data",
+                "isles_22",
                 "rawdata",
                 "sub-strokecase*",
                 "ses-*",
@@ -26,14 +28,16 @@ class ISLESDataset(Dataset):
             )
         else:
             mask_path = os.path.join(
-                isles_data_dir,
+                "data",
+                "ISLES-2022",
                 "derivatives",
                 "sub-strokecase*",
                 "ses-*",
                 "sub-strokecase*_ses-*_msk.nii.gz",
             )
             img_path = os.path.join(
-                isles_data_dir,
+                "data",
+                "ISLES-2022",
                 "sub-strokecase*",
                 "ses-*",
                 "dwi",
