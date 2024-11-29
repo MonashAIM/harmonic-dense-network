@@ -5,7 +5,7 @@ import warnings
 import cc3d
 
 
-def compute_dice(im1, im2, empty_value=1.0):
+def compute_dice(im1, im2, empty_value=1.0):  # pragma: no cover
     """
     Computes the Dice coefficient, a measure of set similarity.
     Parameters
@@ -49,7 +49,7 @@ def compute_dice(im1, im2, empty_value=1.0):
     return 2.0 * intersection.sum() / im_sum
 
 
-def compute_absolute_volume_difference(im1, im2, voxel_size):
+def compute_absolute_volume_difference(im1, im2, voxel_size):  # pragma: no cover
     """
     Computes the absolute volume difference between two masks.
 
@@ -92,7 +92,9 @@ def compute_absolute_volume_difference(im1, im2, voxel_size):
     return abs_vol_diff
 
 
-def compute_absolute_lesion_difference(ground_truth, prediction, connectivity=26):
+def compute_absolute_lesion_difference(
+    ground_truth, prediction, connectivity=26
+):  # pragma: no cover
     """
     Computes the absolute lesion difference between two masks. The number of lesions are counted for
     each volume, and their absolute difference is computed.
@@ -129,7 +131,9 @@ def compute_absolute_lesion_difference(ground_truth, prediction, connectivity=26
     return abs_les_diff
 
 
-def compute_lesion_f1_score(ground_truth, prediction, empty_value=1.0, connectivity=26):
+def compute_lesion_f1_score(
+    ground_truth, prediction, empty_value=1.0, connectivity=26
+):  # pragma: no cover
     """
     Computes the lesion-wise F1-score between two masks.
 

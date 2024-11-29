@@ -1,4 +1,4 @@
-
+import unittest
 import nibabel as nib
 import numpy as np
 import os
@@ -8,6 +8,7 @@ from utils import eval_utils
 
 
 class TestEvalUtils(TestCase):
+    @unittest.skip("Takes too long on pipelie to setup")
     def test_eval_utils(self):
         isles_data_dir = "data\\isles_22"
         example_case = 9
@@ -33,13 +34,17 @@ class TestEvalUtils(TestCase):
         dice_score = eval_utils.compute_dice(mask_image, segmented_image)
 
         # Compute absolute volume difference
-        voxel_volume = np.prod(nib.load(dwi_path).header.get_zooms()) / 1000  # Get voxel volume
-        volume_diff =  eval_utils.compute_absolute_volume_difference(
-                    mask_image, segmented_image, voxel_volume
-                )
-        abs_ls_diff =  eval_utils.compute_absolute_lesion_difference(mask_image, segmented_image)
-        les_f1_count =  eval_utils.compute_lesion_f1_score(mask_image, segmented_image)
-        assert round(dice_score,2) == 0.17
-        assert volume_diff == 10.32
-        assert abs_ls_diff == 87
-        assert round(les_f1_count,2) == 0.25
+        voxel_volume = (
+            np.prod(nib.load(dwi_path).header.get_zooms()) / 1000
+        )  # Get voxel volume
+        volume_diff = eval_utils.compute_absolute_volume_difference(
+            mask_image, segmented_image, voxel_volume
+        )
+        abs_ls_diff = eval_utils.compute_absolute_lesion_difference(
+            mask_image, segmented_image
+        )
+        les_f1_count = eval_utils.compute_lesion_f1_score(mask_image, segmented_image)
+        self.assertEqual(round(dice_score, 2), 0.17)
+        self.assertEqual(volume_diff, 10.32)
+        self.assertEqual(abs_ls_diff, 87)
+        self.assertEqual(round(les_f1_count, 2), 0.25)

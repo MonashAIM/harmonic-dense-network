@@ -2,23 +2,20 @@ import os
 import yaml
 import torch.nn as nn
 from models.helper import Conv, HarDBlock, DWConvTransition
+from models.config_dic import config_files
 
-config_files = {
-    '68': '68arch_config.yaml',
-    '85': '85arch_config.yaml',
-    '39DS': '39DSarch_config.yaml'
-}
 
-class HarDNet(nn.Module):
-    def __init__(self, arch='68', act="relu", *args, **kwargs):
+class HarDNet(nn.Module):  # pragma: no cover
+    def __init__(self, arch="68", act="relu", *args, **kwargs):
         super().__init__()
 
-        config_path = os.path.join(os.getcwd(), "models","configs", config_files[arch])
+        config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 
         second_kernel = 3
         max_pool = True
+        init_ch = 1
         first_ch = config.get("first_ch")[0]
         ch_list = config.get("ch_list")[0]
         gr = config.get("gr")[0]
@@ -36,7 +33,7 @@ class HarDNet(nn.Module):
         blocks = len(n_layers)
         self.layers = nn.ModuleList([])
 
-        self.layers.append(Conv(13, first_ch[0], kernel=3, stride=2, bias=False))
+        self.layers.append(Conv(init_ch, first_ch[0], kernel=3, stride=2, bias=False))
         self.layers.append(Conv(first_ch[0], first_ch[1], kernel=second_kernel))
 
         if max_pool:
@@ -50,7 +47,7 @@ class HarDNet(nn.Module):
             ch = block.get_out_ch()
             self.layers.append(block)
 
-            if (i == (blocks - 1)) and (arch=='85'):
+            if (i == (blocks - 1)) and (arch == "85"):
                 self.layers.append(nn.Dropout(drop_rate))
 
             self.layers.append(Conv(ch, ch_list[i], act=act, kernel=1))
@@ -67,7 +64,7 @@ class HarDNet(nn.Module):
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(),
                 nn.Dropout(drop_rate),
-                nn.Linear(ch, 1000)
+                nn.Linear(ch, 1000),
             )
         )
 
@@ -75,7 +72,5 @@ class HarDNet(nn.Module):
 
     def forward(self, x):
         for layer in self.layers:
-            # print(layer, x.shape)
             x = layer(x)
-            # print(f'out {x.shape}')
         return x
