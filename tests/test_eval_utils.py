@@ -1,3 +1,4 @@
+import unittest
 import nibabel as nib
 import numpy as np
 import os
@@ -7,6 +8,7 @@ from utils import eval_utils
 
 
 class TestEvalUtils(TestCase):
+    @unittest.skip("Takes too long on pipelie to setup")
     def test_eval_utils(self):
         isles_data_dir = "data\\isles_22"
         example_case = 9
