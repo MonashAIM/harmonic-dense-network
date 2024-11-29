@@ -1,5 +1,7 @@
 from torch.utils.data import Dataset
-import os, glob, torch
+import os
+import glob
+import torch
 import nibabel as nib
 
 

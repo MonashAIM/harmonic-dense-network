@@ -1,5 +1,6 @@
 import torchio as tio
-import os, glob
+import os
+import glob
 from torch.utils.data import DataLoader
 
 

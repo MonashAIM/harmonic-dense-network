@@ -16,7 +16,7 @@ def hardunet_train_loop(
     epochs=1001,
     scheduler: torch.optim.lr_scheduler = None,
     checks=100,
-): # pragma: no cover
+):  # pragma: no cover
     model = model.to(device)
     n_classes = model.get_classes()
 
@@ -64,9 +64,8 @@ def hardunet_test(
     device: torch.device,
     test_data: DataLoader,
     threshold: float = 0.5,
-): # pragma: no cover
+):  # pragma: no cover
     model = model.to(device)
-    n_classes = model.get_classes()
     model.eval()
     test_preds = []
     with torch.inference_mode():
