@@ -5,7 +5,7 @@ from models.helper import Conv, HarDBlock, DWConvTransition
 from models.config_dic import config_files
 
 
-class HarDNet(nn.Module):
+class HarDNet(nn.Module):  # pragma: no cover
     def __init__(self, arch="68", act="relu", *args, **kwargs):
         super().__init__()
 

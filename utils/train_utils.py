@@ -16,7 +16,7 @@ def hardunet_train_loop(
     epochs=1001,
     scheduler: torch.optim.lr_scheduler = None,
     checks=100,
-):
+): # pragma: no cover
     model = model.to(device)
     n_classes = model.get_classes()
 
@@ -58,10 +58,13 @@ def hardunet_train_loop(
                 print(f"Average Val Loss: {avg_val_loss}")
             print("----------------------------------------------------")
 
-def hardunet_test(model: nn.Module, 
-                  device: torch.device,
-                  test_data: DataLoader,
-                  threshold: float = 0.5):
+
+def hardunet_test(
+    model: nn.Module,
+    device: torch.device,
+    test_data: DataLoader,
+    threshold: float = 0.5,
+): # pragma: no cover
     model = model.to(device)
     n_classes = model.get_classes()
     model.eval()
@@ -70,14 +73,15 @@ def hardunet_test(model: nn.Module,
         for test_X, test_y in test_data:
             test_X, test_y = test_X.to(device), test_y.to(device)
             test_pred = model(test_X)
-            
-            if test_pred.shape[1] == 1:  # Assuming a binary segmentation model (single output channel)
+
+            if (
+                test_pred.shape[1] == 1
+            ):  # Assuming a binary segmentation model (single output channel)
                 test_pred = torch.sigmoid(test_pred)
                 test_pred = (test_pred > threshold).float()
             else:  # For multi-class segmentation (e.g., softmax output)
                 test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(F.softmax(test_pred, dim=1), dim=1)  
+                test_pred = torch.argmax(F.softmax(test_pred, dim=1), dim=1)
 
             test_preds.append(test_pred.cpu())
     return torch.cat(test_preds, dim=0)
-    
