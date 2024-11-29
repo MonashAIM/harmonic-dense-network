@@ -38,7 +38,6 @@ def hardunet_train_loop(
         if eval_data is not None:
             model.eval()
             val_losses = []
-            val_dices = []
             with torch.inference_mode():
                 for val_X, val_y in eval_data:
                     val_X, val_y = val_X.to(device), val_y.to(device)
@@ -58,3 +57,27 @@ def hardunet_train_loop(
                 )
                 print(f"Average Val Loss: {avg_val_loss}")
             print("----------------------------------------------------")
+
+def hardunet_test(model: nn.Module, 
+                  device: torch.device,
+                  test_data: DataLoader,
+                  threshold: float = 0.5):
+    model = model.to(device)
+    n_classes = model.get_classes()
+    model.eval()
+    test_preds = []
+    with torch.inference_mode():
+        for test_X, test_y in test_data:
+            test_X, test_y = test_X.to(device), test_y.to(device)
+            test_pred = model(test_X)
+            
+            if test_pred.shape[1] == 1:  # Assuming a binary segmentation model (single output channel)
+                test_pred = torch.sigmoid(test_pred)
+                test_pred = (test_pred > threshold).float()
+            else:  # For multi-class segmentation (e.g., softmax output)
+                test_pred = torch.sigmoid(test_pred)
+                test_pred = torch.argmax(F.softmax(test_pred, dim=1), dim=1)  
+
+            test_preds.append(test_pred.cpu())
+    return torch.cat(test_preds, dim=0)
+    
