@@ -31,7 +31,6 @@ class HarDUNet(nn.Module):
         gr = config.get("gr")[0]
         m = config.get("grmul")
         n_layers = config.get("n_layers")[0]
-        downSamp = config.get("downSamp")[0]
         drop_rate = config.get("drop_rate")
         depthwise = config.get("depthwise")
 
@@ -56,8 +55,6 @@ class HarDUNet(nn.Module):
 
             self.enc.append(Conv(ch, ch_list[i], act=act, kernel=1))
             ch = ch_list[i]
-            # if downSamp[i] == 1:
-            #     self.enc.append(nn.MaxPool2d(kernel_size=2, stride=2))
 
         self.dec = nn.ModuleList([])
         ch = ch_list[blocks - 2]
