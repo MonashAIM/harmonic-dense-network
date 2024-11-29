@@ -42,7 +42,7 @@ class TestEvalUtils(TestCase):
             mask_image, segmented_image
         )
         les_f1_count = eval_utils.compute_lesion_f1_score(mask_image, segmented_image)
-        assert round(dice_score, 2) == 0.17
-        assert volume_diff == 10.32
-        assert abs_ls_diff == 87
-        assert round(les_f1_count, 2) == 0.25
+        self.assertEqual(round(dice_score, 2), 0.17)
+        self.assertEqual(volume_diff, 10.32)
+        self.assertEqual(abs_ls_diff, 87)
+        self.assertEqual(round(les_f1_count, 2), 0.25)
