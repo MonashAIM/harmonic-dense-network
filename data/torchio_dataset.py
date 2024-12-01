@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 
 
 def get_isles_22(
-    batch_size=8, shuffle=True, sample_data=False, restrict_shape=(1,112,112,73)
+    batch_size=8, shuffle=True, sample_data=False, restrict_shape=(1, 112, 112, 73)
 ):
     torch_io_ds = tio.SubjectsDataset(
         get_isles_22_dwi_subjects(
@@ -19,7 +19,7 @@ def get_isles_22_dwi_subjects(
     isles_data_dir="data\\ISLES-2022",
     modality="dwi",
     sample_data=False,
-    restrict_shape=(1,112,112,73),
+    restrict_shape=(1, 112, 112, 73),
 ):
     if sample_data:
         mask_path = os.path.join(
