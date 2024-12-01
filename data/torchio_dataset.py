@@ -4,15 +4,22 @@ import glob
 from torch.utils.data import DataLoader
 
 
-def get_isles_22(batch_size=8, shuffle=True, sample_data=False):
+def get_isles_22(
+    batch_size=8, shuffle=True, sample_data=False, restrict_shape=(1, 112, 112, 73)
+):
     torch_io_ds = tio.SubjectsDataset(
-        get_isles_22_dwi_subjects(sample_data=sample_data)
+        get_isles_22_dwi_subjects(
+            sample_data=sample_data, restrict_shape=restrict_shape
+        )
     )
     return DataLoader(torch_io_ds, batch_size=batch_size, shuffle=shuffle)
 
 
 def get_isles_22_dwi_subjects(
-    isles_data_dir="data\\ISLES-2022", modality="dwi", sample_data=False
+    isles_data_dir="data\\ISLES-2022",
+    modality="dwi",
+    sample_data=False,
+    restrict_shape=(1, 112, 112, 73),
 ):
     if sample_data:
         mask_path = os.path.join(
@@ -60,5 +67,6 @@ def get_isles_22_dwi_subjects(
             img=tio.ScalarImage(image_path),
             mask=tio.LabelMap(label_path),
         )
-        subjects.append(subject)
+        if subject.shape == restrict_shape:
+            subjects.append(subject)
     return subjects
