@@ -1,8 +1,6 @@
-from models.HarDNet import HarDNet
+from data.torchio_dataset import get_isles_22
 
 
 if __name__ == "__main__":  # pragma: no cover
-    model = HarDNet(arch="39DS")
-    print(len(model.layers))
-    model2 = HarDNet(arch="68")
-    print(len(model2.layers))
+    dataloader = get_isles_22()
+    print(len(dataloader))
