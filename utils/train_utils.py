@@ -4,7 +4,20 @@ from torch.nn import functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
+import torchio as tio
+import pytorch_lightning as pl
 
+
+CHANNELS_DIMENSION = 1
+SPATIAL_DIMENSIONS = 2, 3, 4
+
+def prepare_batch(batch, device):
+    inputs = batch['img'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
+    # foreground = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
+    # background = 1 - foreground
+    # targets = torch.cat((background, foreground), dim=CHANNELS_DIMENSION).float()
+    targets = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
+    return inputs, targets
 
 def hardunet_train_loop(
     model: nn.Module,
@@ -22,9 +35,10 @@ def hardunet_train_loop(
 
     for epoch in range(epochs):
         model.train()
-        for batch_X, batch_y in train_data:
-            batch_X, batch_y = batch_X.to(device), batch_y.to(device)
-            y_pred = model(batch_X)
+        for batch in train_data:
+            batch_X, batch_y = prepare_batch(batch, device)
+            logits = model(batch_X)
+            y_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
             loss = loss_fn(y_pred, batch_y)
             train_dice = sum(dice(y_pred, batch_y, n_classes)) / len(batch_y)
             optim.zero_grad()
@@ -41,7 +55,8 @@ def hardunet_train_loop(
             with torch.inference_mode():
                 for val_X, val_y in eval_data:
                     val_X, val_y = val_X.to(device), val_y.to(device)
-                    val_pred = model(val_X)
+                    logits = model(batch_X)
+                    val_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
                     val_loss = loss_fn(val_pred, val_y)
                     val_dice = sum(dice(val_pred, val_y, n_classes)) / len(val_y)
                     val_losses.append(val_loss.item())
@@ -71,7 +86,8 @@ def hardunet_test(
     with torch.inference_mode():
         for test_X, test_y in test_data:
             test_X, test_y = test_X.to(device), test_y.to(device)
-            test_pred = model(test_X)
+            logits = model(test_X)
+            test_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
 
             if (
                 test_pred.shape[1] == 1
@@ -80,7 +96,8 @@ def hardunet_test(
                 test_pred = (test_pred > threshold).float()
             else:  # For multi-class segmentation (e.g., softmax output)
                 test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(F.softmax(test_pred, dim=1), dim=1)
+                test_pred = torch.argmax(F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION)
 
             test_preds.append(test_pred.cpu())
     return torch.cat(test_preds, dim=0)
+

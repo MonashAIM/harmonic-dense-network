@@ -4,7 +4,6 @@ import torch.nn as nn
 from models.helper import Bottleneck, Down, Up, Conv
 from models.config_dic import config_files
 
-
 class HarDUNet(nn.Module):
     def __init__(
         self,
@@ -13,7 +12,7 @@ class HarDUNet(nn.Module):
         act="relu",
         transformer=False,
         keepbase=False,
-        bilinear=True,
+        trilinear=True,
         *args,
         **kwargs,
     ):
@@ -59,7 +58,7 @@ class HarDUNet(nn.Module):
         self.dec = nn.ModuleList([])
         ch = ch_list[blocks - 2]
         for j in range(blocks - 2, -1, -1):
-            # in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, bilinear=True
+            # in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, trilinear=True
             # print(ch)
             block = Up(
                 ch,
@@ -69,7 +68,7 @@ class HarDUNet(nn.Module):
                 act=act,
                 dwconv=depthwise,
                 keepbase=keepbase,
-                bilinear=True,
+                trilinear=True,
             )
             ch = block.get_out_ch()
             self.dec.append(block)
@@ -91,7 +90,7 @@ class HarDUNet(nn.Module):
             act=act,
             dwconv=depthwise,
             keepbase=keepbase,
-            bilinear=True,
+            trilinear=True,
         )
         ch = block.get_out_ch()
         self.dec.append(block)
@@ -110,9 +109,9 @@ class HarDUNet(nn.Module):
         else:
             self.bottleneck = nn.ModuleList([Bottleneck(ch_list[-1], act=act)])
 
-        if bilinear:
+        if trilinear:
             self.bottleneck.append(
-                nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+                nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
             )
         else:
             self.bottleneck.append(
@@ -148,8 +147,9 @@ class HarDUNet(nn.Module):
                 x = layer(x)
         else:
             for layer in self.bottleneck:
+                # print(f'awawa {x.shape}')
                 x = layer(x)
-        # print(x.shape)
+        print(x.shape)
         j = 0
         for i in range(len(self.dec)):
             layer = self.dec[i]
@@ -157,7 +157,7 @@ class HarDUNet(nn.Module):
             if isinstance(layer, Conv) or isinstance(layer, nn.Dropout):
                 x = layer(x)
             else:
-                # print(f'awawawa {outs[len(outs)-1-j].shape}')
+                # print(f'awawawa {x.shape} {outs[len(outs)-1-j].shape}')
                 x = layer(x, outs[len(outs) - 1 - j])
                 j += 1
 
@@ -167,17 +167,16 @@ class HarDUNet(nn.Module):
             # print(f'outc after {x.shape}')
 
         return x  # If we want logits
-        # return nn.Softmax(x) # If we want values
 
     def get_classes(self):
         return self.classes
 
 
-if __name__ == "__main__":
-    # temp = torch.randn(size=(32, 1, 112, 112))
-    # model = HarmonicUNet(transformer=False)
-    # # print(model)
-    # out = model(temp)
-    # print(temp.shape)
-    # print(out.shape)
-    pass
+# if __name__ == "__main__":
+#     temp = torch.randn(size=(2, 1, 73, 112, 112))
+#     model = HarDUNet(arch='39DS',transformer=False)
+#     # print(model)
+#     out = model(temp)
+#     print(temp.shape)
+#     print(out.shape)
+#     pass
