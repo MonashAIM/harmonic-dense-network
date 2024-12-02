@@ -2,7 +2,6 @@ import torchio as tio
 import os
 import glob
 from torch.utils.data import DataLoader
-import torch
 
 
 def get_isles_22(
@@ -72,9 +71,3 @@ def get_isles_22_dwi_subjects(
         if subject.shape == restrict_shape:
             subjects.append(subject)
     return subjects
-
-# if __name__ == '__main__':
-#     temp = torch.randn(1, 90, 90, 45)
-#     temp = temp.squeeze(0)
-#     temp = temp.permute(2, 0, 1)
-#     print(temp.shape)
