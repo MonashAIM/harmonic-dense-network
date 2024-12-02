@@ -1,8 +1,9 @@
 import os
 import yaml
 import torch.nn as nn
-from models.helper import Bottleneck, Down, Up, Conv
-from models.config_dic import config_files
+from helper import Bottleneck, Down, Up, Conv
+from config_dic import config_files
+import torch
 
 class HarDUNet(nn.Module):
     def __init__(
@@ -11,6 +12,7 @@ class HarDUNet(nn.Module):
         arch="68",
         act="relu",
         transformer=False,
+        transformer_n = 4,
         keepbase=False,
         trilinear=True,
         *args,
@@ -104,8 +106,11 @@ class HarDUNet(nn.Module):
 
         # Bottleneck
         self.transformer = transformer
+        self.transformer_n = transformer_n
+        self.bottleneck = nn.ModuleList()
         if self.transformer:
-            self.bottleneck = nn.ModuleList([nn.Transformer(d_model=ch_list[-1])])
+            for _ in range(self.transformer_n):
+                self.bottleneck.append(nn.Transformer(d_model=ch_list[-1]))
         else:
             self.bottleneck = nn.ModuleList([Bottleneck(ch_list[-1], act=act)])
 
@@ -137,19 +142,21 @@ class HarDUNet(nn.Module):
         # for out in outs:
         #     print(f'Outs {out.shape}')
 
-        if self.transformer:
-            b, c, h, w = x.shape
-            x = x.view(b, h * w, c)
-            x = self.bottleneck[0](x, x)
-            x = x.view(b, c, h, w)
-            for i in range(1, len(self.bottleneck)):
+        if self.transformer:                
+            for i in range(len(self.bottleneck)):
                 layer = self.bottleneck[i]
-                x = layer(x)
+                if isinstance(layer, nn.Transformer):
+                    b, c, d, h, w = x.shape
+                    x = x.view(b, d * h * w, c)
+                    x = layer(x, x)
+                    x = x.view(b, c, d, h, w)
+                else:
+                    x = layer(x)
         else:
             for layer in self.bottleneck:
                 # print(f'awawa {x.shape}')
                 x = layer(x)
-        print(x.shape)
+        # print(x.shape)
         j = 0
         for i in range(len(self.dec)):
             layer = self.dec[i]
@@ -172,11 +179,11 @@ class HarDUNet(nn.Module):
         return self.classes
 
 
-# if __name__ == "__main__":
-#     temp = torch.randn(size=(2, 1, 73, 112, 112))
-#     model = HarDUNet(arch='39DS',transformer=False)
-#     # print(model)
-#     out = model(temp)
-#     print(temp.shape)
-#     print(out.shape)
+if __name__ == "__main__":
+    temp = torch.randn(size=(2, 1, 73, 112, 112))
+    model = HarDUNet(arch='39DS',transformer=True)
+    # print(model)
+    out = model(temp)
+    print(temp.shape)
+    print(out.shape)
 #     pass
