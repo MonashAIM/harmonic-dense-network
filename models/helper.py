@@ -6,16 +6,16 @@ from torch.nn import functional as F
 class InvertedTransition(nn.Module):
     def __init__(self, in_channel, out_channel, adapt=False, *args, **kwargs):
         super().__init__()
-        self.maxpool = nn.MaxPool2d(kernel_size=2)
+        self.maxpool = nn.MaxPool3d(kernel_size=2)
         if adapt:
             out_h = (in_channel.shape[0] - 2) + 1
             out_w = (in_channel.shape[0] - 2) + 1
-            self.avgpool = nn.AdaptiveAvgPool2d(
+            self.avgpool = nn.AdaptiveAvgPool3d(
                 output_size=(out_h, out_w)
             )  # Not really sure
         else:
-            self.avgpool = nn.AvgPool2d(kernel_size=2)
-        self.conv = nn.Conv2d(
+            self.avgpool = nn.AvgPool3d(kernel_size=2)
+        self.conv = nn.Conv3d(
             in_channels=in_channel, out_channels=out_channel, kernel_size=1
         )
 
@@ -32,7 +32,7 @@ class DWConvTransition(nn.Sequential):
         super().__init__()
         self.add_module(
             "dwconv",
-            nn.Conv2d(
+            nn.Conv3d(
                 in_channels,
                 in_channels,
                 kernel_size=kernel,
@@ -42,7 +42,7 @@ class DWConvTransition(nn.Sequential):
                 bias=bias,
             ),
         )
-        self.add_module("norm", nn.BatchNorm2d(in_channels))
+        self.add_module("norm", nn.BatchNorm3d(in_channels))
 
     def forward(self, x):
         return super().forward(x)
@@ -61,32 +61,42 @@ class Conv(nn.Sequential):
         **kwargs,
     ):
         super().__init__()
+
+        # if isinstance(kernel, int):
+        #     kernel = (kernel, kernel, kernel)  # Make kernel a tuple
+        # if isinstance(stride, int):
+        #     stride = (stride, stride, stride)  # Make stride a tuple
+        # if isinstance(stride, tuple) and len(stride) == 1:
+        #     stride = (stride[0], stride[0], stride[0])  
+        
+
         self.add_module(
-            "conv",
-            nn.Conv2d(
+            name="conv",
+            module=nn.Conv3d(
                 in_channels=in_channel,
                 out_channels=out_channel,
                 kernel_size=kernel,
                 stride=stride,
                 padding=kernel // 2,
                 bias=bias,
-            ),
+            )
         )
-        self.add_module("bn", nn.BatchNorm2d(num_features=out_channel))
+
+        self.add_module(name="bn", module=nn.BatchNorm3d(num_features=out_channel))
 
         if act == "relu":
-            self.add_module("act", nn.ReLU())
+            self.add_module(name="act", module=nn.ReLU())
         elif act == "leaky":
-            self.add_module("act", nn.LeakyReLU())
+            self.add_module(name="act", module=nn.LeakyReLU())
         elif act == "relu6":
-            self.add_module("act", nn.ReLU6())
+            self.add_module(name="act", module=nn.ReLU6())
         elif act == "tanh":
-            self.add_module("act", nn.Tanh())
+            self.add_module(name="act", module=nn.Tanh())
         else:
             print("Unknown activation function")
 
-    def forward(self, x):
-        return super().forward(x)
+    # def forward(self, x):
+    #     return super().forward(x)
 
 
 class CombConv(nn.Sequential):
@@ -99,6 +109,7 @@ class CombConv(nn.Sequential):
         stride=1,
     ):
         super().__init__()
+
         self.add_module(
             "conv",
             Conv(
@@ -113,8 +124,8 @@ class CombConv(nn.Sequential):
             DWConvTransition(out_channel, stride=stride),
         )
 
-    def forward(self, x):
-        return super().forward(x)
+    # def forward(self, x):
+    #     return super().forward(x)
 
 
 class HarDBlock(nn.Module):
@@ -212,13 +223,13 @@ class Up(nn.Module):
         act="relu",
         dwconv=True,
         keepbase=False,
-        bilinear=True,
+        trilinear=True,
         *args,
         **kwargs,
     ):
         super().__init__()
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+        if trilinear:
+            self.up = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
             self.conv = Conv(
                 2 * in_channels, in_channels, act=act, kernel=3, padding=1, bias=False
             )
@@ -230,10 +241,10 @@ class Up(nn.Module):
                 act=act,
                 dwconv=dwconv,
                 keepbase=keepbase,
-                bilinear=bilinear,
+                trilinear=trilinear,
             )
         else:
-            self.up = nn.ConvTranspose2d(
+            self.up = nn.ConvTranspose3d(
                 in_channels, in_channels // 2, kernel_size=2, stride=2
             )
             self.conv = Conv(
@@ -247,19 +258,22 @@ class Up(nn.Module):
                 act=act,
                 dwconv=dwconv,
                 keepbase=keepbase,
-                bilinear=bilinear,
+                trilinear=trilinear,
             )
 
     def forward(self, x1, x2):
         # print(f'Before up {x1.shape}')
         x1 = self.up(x1)
         # Assuming input BCHW
-        # print(x1.shape, x2.shape)
+        # print(x1.size(), x2.size())
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
+        diffZ = x2.size()[4] - x1.size()[4]
 
-        # print(f'diff {diffX} and {diffY}')
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        # print(f'diff {diffX} {diffY} {diffZ}')
+        x1 = F.pad(x1, [diffZ // 2, diffZ - diffZ // 2,
+                        diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])
 
         # print(f'Before concat {x1.shape} {x2.shape}')
         x = torch.cat([x2, x1], dim=1)
@@ -292,7 +306,7 @@ class Down(nn.Module):
         super().__init__()
         self.down = nn.ModuleList(
             [
-                nn.MaxPool2d(2),
+                nn.MaxPool3d(2),
                 HarDBlock(
                     in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False
                 ),
