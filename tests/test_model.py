@@ -10,7 +10,7 @@ class ModelTest(unittest.TestCase):
         model = HarDNet(arch="39DS")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, torch.Size([32, 1000]))
         self.assertEqual(len(model.layers), 15)
@@ -20,7 +20,7 @@ class ModelTest(unittest.TestCase):
         model = HarDNet(arch="68")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, torch.Size([32, 1000]))
         self.assertEqual(len(model.layers), 17)
@@ -30,7 +30,7 @@ class ModelTest(unittest.TestCase):
         model = HarDNet(arch="85")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, torch.Size([32, 1000]))
         self.assertEqual(len(model.layers), 20)
@@ -39,7 +39,7 @@ class ModelTest(unittest.TestCase):
         model = HarDUNet(n_classes=1, arch="39DS")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, x.shape)
 
@@ -47,7 +47,7 @@ class ModelTest(unittest.TestCase):
         model = HarDUNet(n_classes=1, arch="68")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, x.shape)
 
@@ -55,6 +55,6 @@ class ModelTest(unittest.TestCase):
         model = HarDUNet(n_classes=1, arch="85")
         self.assertIsNotNone(model)
 
-        x = torch.rand(size=[32, 1, 112, 112])
+        x = torch.rand(size=[32, 1, 73, 112, 112])
         out = model(x)
         self.assertEqual(out.shape, x.shape)

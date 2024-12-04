@@ -4,7 +4,6 @@ import torch.nn as nn
 from models.helper import Bottleneck, Down, Up, Conv
 from models.config_dic import config_files
 
-
 class HarDUNet(nn.Module):
     def __init__(
         self,
@@ -12,8 +11,9 @@ class HarDUNet(nn.Module):
         arch="68",
         act="relu",
         transformer=False,
+        transformer_n = 4,
         keepbase=False,
-        bilinear=True,
+        trilinear=True,
         *args,
         **kwargs,
     ):
@@ -59,7 +59,7 @@ class HarDUNet(nn.Module):
         self.dec = nn.ModuleList([])
         ch = ch_list[blocks - 2]
         for j in range(blocks - 2, -1, -1):
-            # in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, bilinear=True
+            # in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False, trilinear=True
             # print(ch)
             block = Up(
                 ch,
@@ -69,7 +69,7 @@ class HarDUNet(nn.Module):
                 act=act,
                 dwconv=depthwise,
                 keepbase=keepbase,
-                bilinear=True,
+                trilinear=True,
             )
             ch = block.get_out_ch()
             self.dec.append(block)
@@ -91,7 +91,7 @@ class HarDUNet(nn.Module):
             act=act,
             dwconv=depthwise,
             keepbase=keepbase,
-            bilinear=True,
+            trilinear=True,
         )
         ch = block.get_out_ch()
         self.dec.append(block)
@@ -105,14 +105,17 @@ class HarDUNet(nn.Module):
 
         # Bottleneck
         self.transformer = transformer
+        self.transformer_n = transformer_n
+        self.bottleneck = nn.ModuleList()
         if self.transformer:
-            self.bottleneck = nn.ModuleList([nn.Transformer(d_model=ch_list[-1])])
+            for _ in range(self.transformer_n):
+                self.bottleneck.append(nn.Transformer(d_model=ch_list[-1]))
         else:
             self.bottleneck = nn.ModuleList([Bottleneck(ch_list[-1], act=act)])
 
-        if bilinear:
+        if trilinear:
             self.bottleneck.append(
-                nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+                nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
             )
         else:
             self.bottleneck.append(
@@ -138,16 +141,19 @@ class HarDUNet(nn.Module):
         # for out in outs:
         #     print(f'Outs {out.shape}')
 
-        if self.transformer:
-            b, c, h, w = x.shape
-            x = x.view(b, h * w, c)
-            x = self.bottleneck[0](x, x)
-            x = x.view(b, c, h, w)
-            for i in range(1, len(self.bottleneck)):
+        if self.transformer:                
+            for i in range(len(self.bottleneck)):
                 layer = self.bottleneck[i]
-                x = layer(x)
+                if isinstance(layer, nn.Transformer):
+                    b, c, d, h, w = x.shape
+                    x = x.view(b, d * h * w, c)
+                    x = layer(x, x)
+                    x = x.view(b, c, d, h, w)
+                else:
+                    x = layer(x)
         else:
             for layer in self.bottleneck:
+                # print(f'awawa {x.shape}')
                 x = layer(x)
         # print(x.shape)
         j = 0
@@ -157,7 +163,7 @@ class HarDUNet(nn.Module):
             if isinstance(layer, Conv) or isinstance(layer, nn.Dropout):
                 x = layer(x)
             else:
-                # print(f'awawawa {outs[len(outs)-1-j].shape}')
+                # print(f'awawawa {x.shape} {outs[len(outs)-1-j].shape}')
                 x = layer(x, outs[len(outs) - 1 - j])
                 j += 1
 
@@ -167,15 +173,14 @@ class HarDUNet(nn.Module):
             # print(f'outc after {x.shape}')
 
         return x  # If we want logits
-        # return nn.Softmax(x) # If we want values
 
     def get_classes(self):
         return self.classes
 
 
 if __name__ == "__main__":
-    # temp = torch.randn(size=(32, 1, 112, 112))
-    # model = HarmonicUNet(transformer=False)
+    # temp = torch.randn(size=(2, 1, 73, 112, 112))
+    # model = HarDUNet(arch='39DS',transformer=True)
     # # print(model)
     # out = model(temp)
     # print(temp.shape)
