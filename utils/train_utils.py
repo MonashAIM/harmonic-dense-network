@@ -5,7 +5,6 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
 import torchio as tio
-import pytorch_lightning as pl
 
 
 CHANNELS_DIMENSION = 1

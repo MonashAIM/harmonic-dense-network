@@ -3,7 +3,6 @@ import yaml
 import torch.nn as nn
 from helper import Bottleneck, Down, Up, Conv
 from config_dic import config_files
-import torch
 
 class HarDUNet(nn.Module):
     def __init__(
@@ -180,10 +179,10 @@ class HarDUNet(nn.Module):
 
 
 if __name__ == "__main__":
-    temp = torch.randn(size=(2, 1, 73, 112, 112))
-    model = HarDUNet(arch='39DS',transformer=True)
-    # print(model)
-    out = model(temp)
-    print(temp.shape)
-    print(out.shape)
-#     pass
+    # temp = torch.randn(size=(2, 1, 73, 112, 112))
+    # model = HarDUNet(arch='39DS',transformer=True)
+    # # print(model)
+    # out = model(temp)
+    # print(temp.shape)
+    # print(out.shape)
+    pass
