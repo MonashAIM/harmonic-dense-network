@@ -1,8 +1,8 @@
 import os
 import yaml
 import torch.nn as nn
-from helper import Bottleneck, Down, Up, Conv
-from config_dic import config_files
+from models.helper import Bottleneck, Down, Up, Conv
+from models.config_dic import config_files
 
 class HarDUNet(nn.Module):
     def __init__(
