@@ -53,8 +53,8 @@ def hardunet_train_loop(
             model.eval()
             val_losses = []
             with torch.inference_mode():
-                for val_X, val_y in eval_data:
-                    val_X, val_y = val_X.to(device), val_y.to(device)
+                for batch in eval_data:
+                    val_X, val_y = prepare_batch(batch, device)
                     logits = model(batch_X)
                     val_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
                     val_loss = loss_fn(val_pred, val_y)
