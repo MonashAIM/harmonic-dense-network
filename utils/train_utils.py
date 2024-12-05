@@ -25,16 +25,17 @@ def seed_set(seed):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 
+
+CHANNELS_DIMENSION = 1
+SPATIAL_DIMENSIONS = 2, 3, 4
+
 def prepare_batch(batch, device):
-    inputs = batch["img"][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
+    inputs = batch['img'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
     # foreground = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
     # background = 1 - foreground
     # targets = torch.cat((background, foreground), dim=CHANNELS_DIMENSION).float()
-    targets = (
-        batch["mask"][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
-    )  # Not really sure why we need to separate the background and foreground
+    targets = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
     return inputs, targets
-
 
 def hardunet_train_loop(
     model: nn.Module,
@@ -118,9 +119,7 @@ def hardunet_test(
                 test_pred = (test_pred > threshold).float()
             else:  # For multi-class segmentation (e.g., softmax output)
                 test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(
-                    F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION
-                )
+                test_pred = torch.argmax(F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION)
 
             test_preds.append(test_pred.cpu())
     return torch.cat(test_preds, dim=0)

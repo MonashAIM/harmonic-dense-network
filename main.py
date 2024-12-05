@@ -29,3 +29,4 @@ if __name__ == "__main__":  # pragma: no cover
         train_data=data,
         epochs=1,
     )
+
