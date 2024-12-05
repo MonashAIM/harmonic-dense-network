@@ -1,0 +1,10 @@
+stages:
+  train:
+    cmd: python train.py
+    deps:
+      - .\data\ISLES-2022
+      - train.py
+    params:
+      - train.config
+    outs:
+      - .\weights\hardUNet_local.pth
