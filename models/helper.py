@@ -68,7 +68,6 @@ class Conv(nn.Sequential):
         #     stride = (stride, stride, stride)  # Make stride a tuple
         # if isinstance(stride, tuple) and len(stride) == 1:
         #     stride = (stride[0], stride[0], stride[0])  
-        
 
         self.add_module(
             name="conv",

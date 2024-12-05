@@ -11,7 +11,7 @@ class HarDUNet(nn.Module):
         arch="68",
         act="relu",
         transformer=False,
-        transformer_n = 4,
+        transformer_n=4,
         keepbase=False,
         trilinear=True,
         *args,
@@ -141,7 +141,7 @@ class HarDUNet(nn.Module):
         # for out in outs:
         #     print(f'Outs {out.shape}')
 
-        if self.transformer:                
+        if self.transformer:
             for i in range(len(self.bottleneck)):
                 layer = self.bottleneck[i]
                 if isinstance(layer, nn.Transformer):
