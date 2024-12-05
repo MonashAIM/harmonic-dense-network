@@ -63,7 +63,6 @@ def get_isles_22_dwi_subjects(
 
     subjects = []
     for image_path, label_path in zip(img_files, mask_files):
-        
         subject = tio.Subject(
             img=tio.ScalarImage(image_path),
             mask=tio.LabelMap(label_path),
