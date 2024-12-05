@@ -67,8 +67,7 @@ class Conv(nn.Sequential):
         # if isinstance(stride, int):
         #     stride = (stride, stride, stride)  # Make stride a tuple
         # if isinstance(stride, tuple) and len(stride) == 1:
-        #     stride = (stride[0], stride[0], stride[0])  
-        
+        #     stride = (stride[0], stride[0], stride[0])
 
         self.add_module(
             name="conv",
@@ -79,7 +78,7 @@ class Conv(nn.Sequential):
                 stride=stride,
                 padding=kernel // 2,
                 bias=bias,
-            )
+            ),
         )
 
         self.add_module(name="bn", module=nn.BatchNorm3d(num_features=out_channel))
@@ -271,9 +270,17 @@ class Up(nn.Module):
         diffZ = x2.size()[4] - x1.size()[4]
 
         # print(f'diff {diffX} {diffY} {diffZ}')
-        x1 = F.pad(x1, [diffZ // 2, diffZ - diffZ // 2,
-                        diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
+        x1 = F.pad(
+            x1,
+            [
+                diffZ // 2,
+                diffZ - diffZ // 2,
+                diffX // 2,
+                diffX - diffX // 2,
+                diffY // 2,
+                diffY - diffY // 2,
+            ],
+        )
 
         # print(f'Before concat {x1.shape} {x2.shape}')
         x = torch.cat([x2, x1], dim=1)

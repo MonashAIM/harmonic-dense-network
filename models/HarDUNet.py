@@ -4,6 +4,7 @@ import torch.nn as nn
 from models.helper import Bottleneck, Down, Up, Conv
 from models.config_dic import config_files
 
+
 class HarDUNet(nn.Module):
     def __init__(
         self,
@@ -11,7 +12,7 @@ class HarDUNet(nn.Module):
         arch="68",
         act="relu",
         transformer=False,
-        transformer_n = 4,
+        transformer_n=4,
         keepbase=False,
         trilinear=True,
         *args,
@@ -141,7 +142,7 @@ class HarDUNet(nn.Module):
         # for out in outs:
         #     print(f'Outs {out.shape}')
 
-        if self.transformer:                
+        if self.transformer:
             for i in range(len(self.bottleneck)):
                 layer = self.bottleneck[i]
                 if isinstance(layer, nn.Transformer):
