@@ -1,5 +1,5 @@
 from utils.train_utils import hardunet_train_loop
-from models import HarDUNet
+from models.HarDUNet import HarDUNet
 from data.torchio_dataset import get_isles_22
 from torch.nn import functional as F
 import dvc.api
@@ -26,4 +26,5 @@ if __name__ == "__main__":
         device=device,
         train_data=data,
         epochs=1,
+        name="hardUNet_local",
     )
