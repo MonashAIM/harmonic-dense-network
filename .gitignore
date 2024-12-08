@@ -166,3 +166,5 @@ data/ixi_tiny/
 data/ISLES-2022/
 
 .dvc/config
+
+.gdrive/
