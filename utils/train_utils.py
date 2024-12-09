@@ -25,21 +25,22 @@ def seed_set(seed):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 
+
+CHANNELS_DIMENSION = 1
+SPATIAL_DIMENSIONS = 2, 3, 4
+
 def prepare_batch(batch, device):
-    inputs = batch["img"][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
+    inputs = batch['img'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
     # foreground = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
     # background = 1 - foreground
     # targets = torch.cat((background, foreground), dim=CHANNELS_DIMENSION).float()
-    targets = (
-        batch["mask"][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
-    )  # Not really sure why we need to separate the background and foreground
+    targets = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
     return inputs, targets
-
 
 def hardunet_train_loop(
     model: nn.Module,
     optim: optim,
-    loss_fn: F,
+    loss,
     device: torch.device,
     train_data: DataLoader,
     eval_data: DataLoader = None,
@@ -51,7 +52,8 @@ def hardunet_train_loop(
 ):  # pragma: no cover
     model = model.to(device)
     n_classes = model.get_classes()
-
+    loss_fn = loss()
+    
     for epoch in range(epochs):
         model.train()
         for batch in train_data:
@@ -74,7 +76,7 @@ def hardunet_train_loop(
             with torch.inference_mode():
                 for batch in eval_data:
                     val_X, val_y = prepare_batch(batch, device)
-                    logits = model(batch_X)
+                    logits = model(val_X)
                     val_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
                     val_loss = loss_fn(val_pred, val_y)
                     val_dice = sum(dice(val_pred, val_y, n_classes)) / len(val_y)
@@ -118,9 +120,7 @@ def hardunet_test(
                 test_pred = (test_pred > threshold).float()
             else:  # For multi-class segmentation (e.g., softmax output)
                 test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(
-                    F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION
-                )
+                test_pred = torch.argmax(F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION)
 
             test_preds.append(test_pred.cpu())
     return torch.cat(test_preds, dim=0)
