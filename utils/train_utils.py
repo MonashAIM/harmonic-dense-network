@@ -30,17 +30,17 @@ CHANNELS_DIMENSION = 1
 SPATIAL_DIMENSIONS = 2, 3, 4
 
 def prepare_batch(batch, device):
-    inputs = batch['img'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
+    inputs = batch['image'].permute(0, 1, 4, 2, 3).to(device).float()
     # foreground = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
     # background = 1 - foreground
     # targets = torch.cat((background, foreground), dim=CHANNELS_DIMENSION).float()
-    targets = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
+    targets = batch['label'].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
     return inputs, targets
 
 def hardunet_train_loop(
     model: nn.Module,
     optim: optim,
-    loss_fn: F,
+    loss: F,
     device: torch.device,
     train_data: DataLoader,
     eval_data: DataLoader = None,
@@ -52,15 +52,16 @@ def hardunet_train_loop(
 ):  # pragma: no cover
     model = model.to(device)
     n_classes = model.get_classes()
+    loss_fn = loss()
 
     for epoch in range(epochs):
         model.train()
         for batch in train_data:
             batch_X, batch_y = prepare_batch(batch, device)
             logits = model(batch_X)
-            y_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
-            loss = loss_fn(y_pred, batch_y)
-            train_dice = sum(dice(y_pred, batch_y, n_classes)) / len(batch_y)
+            # y_pred = F.softmax(logits, dim=n_classes)
+            loss = loss_fn(logits, batch_y)
+            train_dice = sum(dice(F.softmax(logits, dim=n_classes), batch_y, n_classes)) / len(batch_y)
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -72,18 +73,18 @@ def hardunet_train_loop(
         if eval_data is not None:
             model.eval()
             val_losses = []
-            with torch.inference_mode():
+            with torch.no_grad():
                 for batch in eval_data:
                     val_X, val_y = prepare_batch(batch, device)
-                    logits = model(batch_X)
-                    val_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
-                    val_loss = loss_fn(val_pred, val_y)
-                    val_dice = sum(dice(val_pred, val_y, n_classes)) / len(val_y)
+                    logits = model(val_X)
+                    # val_pred = F.softmax(logits, dim=n_classes)
+                    val_loss = loss_fn(logits, val_y)
+                    val_dice = sum(dice(logits, val_y, n_classes)) / len(val_y)
                     val_losses.append(val_loss.item())
 
             avg_val_loss = sum(val_losses) / len(val_losses)
 
-        if epoch % checks == 0:
+        if (epoch) % checks == 0:
             print(f"Epoch: {epoch}")
             print(f"TRAIN => Loss: {loss.item():.4f} | Average Dice: {train_dice:.4f}")
             if eval_data is not None:
