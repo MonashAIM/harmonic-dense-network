@@ -5,6 +5,8 @@ from torch import optim
 import torch
 from data.ISLES_dataset import ISLESDataModule
 from utils.loss_utils import DiceLoss
+import torch.nn as nn
+from utils.unet3d import UNet3D
 
 if __name__ == "__main__":  # pragma: no cover
     # data = get_isles_22(
@@ -26,10 +28,15 @@ if __name__ == "__main__":  # pragma: no cover
         print(batch["image"].shape)
         # print(batch["image"][0].shape)
         print(batch["label"].shape)
+        # print(batch['image'][0][0][32][48])
+        # print(batch['label'][0][0][32][48])
         break
 
-    
+    print(torch.unique(batch["image"]))
+    print(torch.unique(batch["label"]))
+
     unet = HarDUNet(arch="39DS", transformer=False)
+    # unet = UNet3D(in_channels=1, num_classes=1)
     lr = 0.01
     loss = DiceLoss
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -41,5 +48,5 @@ if __name__ == "__main__":  # pragma: no cover
         device=device,
         train_data=train_loader,
         epochs=20,
-        checks=2
+        checks=1
     )

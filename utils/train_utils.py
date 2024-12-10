@@ -57,10 +57,10 @@ def hardunet_train_loop(
     for epoch in range(epochs):
         model.train()
         for batch in train_data:
-            batch_X, batch_y = prepare_batch(batch, device)
+            batch_X, batch_y = batch['image'].to(device).float(), batch['label'].to(device).float()
             logits = model(batch_X)
-            # y_pred = F.softmax(logits, dim=n_classes)
-            loss = loss_fn(logits, batch_y)
+            y_pred = F.softmax(logits, dim=n_classes)
+            loss = loss_fn(y_pred, batch_y)
             train_dice = sum(dice(F.softmax(logits, dim=n_classes), batch_y, n_classes)) / len(batch_y)
             optim.zero_grad()
             loss.backward()
@@ -77,8 +77,8 @@ def hardunet_train_loop(
                 for batch in eval_data:
                     val_X, val_y = prepare_batch(batch, device)
                     logits = model(val_X)
-                    # val_pred = F.softmax(logits, dim=n_classes)
-                    val_loss = loss_fn(logits, val_y)
+                    val_pred = F.softmax(logits, dim=n_classes)
+                    val_loss = loss_fn(val_pred, val_y)
                     val_dice = sum(dice(logits, val_y, n_classes)) / len(val_y)
                     val_losses.append(val_loss.item())
 
