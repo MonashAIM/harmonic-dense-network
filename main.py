@@ -10,14 +10,15 @@ import json
 import pytorch_lightning as pl
 
 pl.seed_everything(42, workers=True)
-torch.set_default_dtype(torch.float32)
+# torch.set_default_dtype(torch.float32)
 
 if __name__ == "__main__":  # pragma: no cover
     with open("./data/dataset.json") as json_file:
         data = json.load(json_file)
 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    datamodule = ISLESDataModule(data_properties=data, batch_size=1)
+    datamodule = ISLESDataModule(data_properties=data, batch_size=1, device=device)
 
     # # Total image to read in. In this case, it's 10 (for both train and val). With split = 0.7, 7 wll go to train and 3 will go to val
     datamodule.setup(train_size=30)
@@ -34,7 +35,8 @@ if __name__ == "__main__":  # pragma: no cover
     unet = HarDUNet(arch="39DS", transformer=False)
     lr = 0.0015
     loss = DiceCELoss
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    unet.cuda()
 
     hardunet_train_loop(
         model=unet,
@@ -43,5 +45,5 @@ if __name__ == "__main__":  # pragma: no cover
         device=device,
         train_data=train_loader,
         epochs=10,
-        checks=2
+        checks=2,
     )

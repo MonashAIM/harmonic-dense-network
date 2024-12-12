@@ -12,10 +12,12 @@ class ISLESDataModule(pl.LightningDataModule):
         fold=0,
         batch_size=2,
         num_workers=0,
-        **kwargs
+        device="cpu",
+        **kwargs,
     ):
         super().__init__()
 
+        self.device = device
         self.data_properties = data_properties
         self.fold = fold
         self.batch_size = batch_size
@@ -41,32 +43,26 @@ class ISLESDataModule(pl.LightningDataModule):
                 altered_data = {
                     "id": sample["id"],
                     "fold": sample["fold"],
-                    "image": os.path.join("data","ISLES-2022",sample["image"][0]),
-                    "label": os.path.join("data","ISLES-2022",sample["label"])
+                    "image": os.path.join("data", "ISLES-2022", sample["image"][0]),
+                    "label": os.path.join("data", "ISLES-2022", sample["label"]),
                 }
                 val_data.append(altered_data)
             else:
                 altered_data = {
                     "id": sample["id"],
                     "fold": sample["fold"],
-                    "image": os.path.join("data","ISLES-2022",sample["image"][0]),
-                    "label": os.path.join("data","ISLES-2022",sample["label"])
+                    "image": os.path.join("data", "ISLES-2022", sample["image"][0]),
+                    "label": os.path.join("data", "ISLES-2022", sample["label"]),
                 }
                 train_data.append(altered_data)
 
-
         self.train_set = Dataset(
-            train_data,
-            transform=self.train_transform,
-            **self.dataset_kwargs
+            train_data, transform=self.train_transform, **self.dataset_kwargs
         )
 
         self.val_set = Dataset(
-            val_data,
-            transform=self.val_transform,
-            **self.dataset_kwargs
+            val_data, transform=self.val_transform, **self.dataset_kwargs
         )
-
 
     def train_dataloader(self):
         return DataLoader(
@@ -109,7 +105,7 @@ class ISLESDataModule(pl.LightningDataModule):
             ),
             # transforms.ResizeWithPadOrCropd(keys=("image", "label"),spatial_size=(64, 64, 64)),
             transforms.AsDiscreted("label", threshold=0.5),
-            transforms.ToTensord(["image", "label"]),
+            transforms.ToTensord(["image", "label"], device=self.device),
         ]
         train_transform = transforms.Compose(train_transform)
         return train_transform
@@ -120,6 +116,8 @@ class ISLESDataModule(pl.LightningDataModule):
                 keys=("image", "label"), image_only=True, ensure_channel_first=True
             ),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
-            transforms.ToTensord(["image", "label"], allow_missing_keys=True),
+            transforms.ToTensord(
+                ["image", "label"], allow_missing_keys=True, device=self.device
+            ),
         ]
         return transforms.Compose(val_transform)
