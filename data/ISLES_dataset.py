@@ -28,10 +28,10 @@ class ISLESDataModule(pl.LightningDataModule):
         self.val_transform = self.get_val_transform()
         self.train_set = self.val_set = self.test_set = None
 
-    def __len__(self):
-        return len(self.img_files)
+    # def __len__(self):
+    #     return len(self.img_files)
 
-    def setup(self, train_size=None):
+    def setup(self, train_size=None, stage=None):
         train_data = []
         val_data = []
 
@@ -78,8 +78,8 @@ class ISLESDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def check_matching_number_of_files(self):
-        return len(self.img_files) == len(self.mask_files)
+    # def check_matching_number_of_files(self):
+    #     return len(self.img_files) == len(self.mask_files)
 
     def get_train_transform(self):
         train_transform = [

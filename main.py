@@ -1,6 +1,6 @@
-from models.HarDUNet import HarDUNet
+from models.HarDUNet3D import HarDUNet
 from monai.losses import DiceCELoss
-from utils.train_utils import hardunet_train_loop, prepare_batch
+from utils.train_utils import hardunet_train_loop, prepare_batch, HardUnetTrainer
 from torch.nn import functional as F
 from torch import optim
 import torch
@@ -36,14 +36,28 @@ if __name__ == "__main__":  # pragma: no cover
     lr = 0.0015
     loss = DiceCELoss
 
-    unet.cuda()
+    # unet.cuda()
 
-    hardunet_train_loop(
-        model=unet,
-        optim=optim.AdamW(params=unet.parameters(), lr=lr),
-        loss=loss,
-        device=device,
-        train_data=train_loader,
-        epochs=10,
-        checks=2,
+    # hardunet_train_loop(
+    #     model=unet,
+    #     optim=optim.AdamW(params=unet.parameters(), lr=lr),
+    #     loss=loss,
+    #     device=device,
+    #     train_data=train_loader,
+    #     epochs=10,
+    #     checks=2,
+    # )
+    model = HardUnetTrainer(unet=unet, device=device, model_type=unet.get_model_type())
+    tb_logger = pl.loggers.TensorBoardLogger(save_dir="./logs", name="hardunet") # Just change logs directory
+
+    # initialize Lightning's trainer.
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=1,
+        max_epochs=20,
+        logger=tb_logger,
+        check_val_every_n_epoch=2,
     )
+
+    # train
+    trainer.fit(model, datamodule)

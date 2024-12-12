@@ -68,8 +68,6 @@ class HarDNet(nn.Module):  # pragma: no cover
             )
         )
 
-        # TODO: Look into segmentation problem
-
     def forward(self, x):
         for layer in self.layers:
             x = layer(x)

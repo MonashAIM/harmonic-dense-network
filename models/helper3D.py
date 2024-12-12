@@ -2,31 +2,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
-class InvertedTransition(nn.Module):
-    def __init__(self, in_channel, out_channel, adapt=False, *args, **kwargs):
-        super().__init__()
-        self.maxpool = nn.MaxPool3d(kernel_size=2)
-        if adapt:
-            out_h = (in_channel.shape[0] - 2) + 1
-            out_w = (in_channel.shape[0] - 2) + 1
-            self.avgpool = nn.AdaptiveAvgPool3d(
-                output_size=(out_h, out_w)
-            )  # Not really sure
-        else:
-            self.avgpool = nn.AvgPool3d(kernel_size=2)
-        self.conv = nn.Conv3d(
-            in_channels=in_channel, out_channels=out_channel, kernel_size=1
-        )
-
-    def forward(self, x):
-        res_max = self.maxpool(x)
-        res_avg = self.avgpool(x)
-
-        out = torch.cat((res_max, res_avg))  # Not sure bout dim for torch.cat()
-        return self.conv(out)
-
-
 class DWConvTransition(nn.Sequential):
     def __init__(self, in_channels, kernel=3, stride=1, padding=1, bias=False):
         super().__init__()
@@ -61,14 +36,6 @@ class Conv(nn.Sequential):
         **kwargs,
     ):
         super().__init__()
-
-        # if isinstance(kernel, int):
-        #     kernel = (kernel, kernel, kernel)  # Make kernel a tuple
-        # if isinstance(stride, int):
-        #     stride = (stride, stride, stride)  # Make stride a tuple
-        # if isinstance(stride, tuple) and len(stride) == 1:
-        #     stride = (stride[0], stride[0], stride[0])
-
         self.add_module(
             name="conv",
             module=nn.Conv3d(
@@ -93,10 +60,6 @@ class Conv(nn.Sequential):
             self.add_module(name="act", module=nn.Tanh())
         else:
             print("Unknown activation function")
-
-    # def forward(self, x):
-    #     return super().forward(x)
-
 
 class CombConv(nn.Sequential):
     def __init__(
@@ -123,9 +86,6 @@ class CombConv(nn.Sequential):
             DWConvTransition(out_channel, stride=stride),
         )
 
-    # def forward(self, x):
-    #     return super().forward(x)
-
 
 class HarDBlock(nn.Module):
     def __init__(
@@ -148,14 +108,11 @@ class HarDBlock(nn.Module):
 
         for i in range(n_layers):
             in_ch, out_ch, links = self.get_links(i + 1, in_channels, k, m)
-            # print(f'hardblock {i} {in_ch} {out_ch}')
             self.links.append(links)
-
             if dwconv:
                 layers.append(CombConv(in_ch, out_ch, act=act))
             else:
                 layers.append(Conv(in_ch, out_ch, act=act))
-
             if (i % 2 == 0) or (i == n_layers - 1):
                 self.out_channels += out_ch
 
@@ -176,7 +133,7 @@ class HarDBlock(nn.Module):
                 if i > 0:
                     out_ch *= m
 
-        out_ch = int(int(out_ch + 1) / 2) * 2  # No clue
+        out_ch = int(int(out_ch + 1) / 2) * 2 
         in_ch = 0
 
         for j in links:
@@ -185,7 +142,6 @@ class HarDBlock(nn.Module):
         return in_ch, out_ch, links
 
     def get_out_ch(self):
-        # print(f'out ch {self.out_channels}')
         return self.out_channels
 
     def forward(self, x):
@@ -261,15 +217,12 @@ class Up(nn.Module):
             )
 
     def forward(self, x1, x2):
-        # print(f'Before up {x1.shape}')
         x1 = self.up(x1)
         # Assuming input BCHW
-        # print(x1.size(), x2.size())
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
         diffZ = x2.size()[4] - x1.size()[4]
 
-        # print(f'diff {diffX} {diffY} {diffZ}')
         x1 = F.pad(
             x1,
             [
@@ -282,14 +235,9 @@ class Up(nn.Module):
             ],
         )
 
-        # print(f'Before concat {x1.shape} {x2.shape}')
         x = torch.cat([x2, x1], dim=1)
-        # print(f'Input shape {x.shape}')
         x = self.conv(x)
-
-        # print(f'Input shape block {x.shape}')
         x = self.block(x)
-        # print(f'Output shape block {x.shape}')
         return x
 
     def get_out_ch(self):
@@ -322,9 +270,7 @@ class Down(nn.Module):
 
     def forward(self, x):
         for layer in self.down:
-            # print(f'input shape: {x.shape}')
             x = layer(x)
-            # print(f'{layer}: {x.shape}')
         return x
 
     def get_out_ch(self):

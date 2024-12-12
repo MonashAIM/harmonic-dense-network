@@ -1,6 +1,6 @@
 import unittest
 from models.HarDNet import HarDNet
-from models.HarDUNet import HarDUNet
+from models.HarDUNet3D import HarDUNet
 import torch
 
 
