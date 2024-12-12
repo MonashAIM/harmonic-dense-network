@@ -1,38 +1,42 @@
 from models.HarDUNet import HarDUNet
+from monai.losses import DiceCELoss
 from utils.train_utils import hardunet_train_loop, prepare_batch
 from torch.nn import functional as F
 from torch import optim
 import torch
 from data.ISLES_dataset import ISLESDataModule
-from utils.loss_utils import DiceLoss
+import torch
+import json
+import pytorch_lightning as pl
+
+pl.seed_everything(42, workers=True)
+# torch.set_default_dtype(torch.float32)
 
 if __name__ == "__main__":  # pragma: no cover
-    # data = get_isles_22(
-    #     batch_size=1, shuffle=True, sample_data=False, restrict_shape=(1, 112, 112, 73)
-    # )
+    with open("./data/dataset.json") as json_file:
+        data = json.load(json_file)
 
-    data = ISLESDataModule(batch_size=1)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    # Total image to read in. In this case, it's 10 (for both train and val). With split = 0.7, 7 wll go to train and 3 will go to val
-    data.setup(size=60, split=0.8)
+    datamodule = ISLESDataModule(data_properties=data, batch_size=1, device=device)
 
-    #Loadin the data according to the upper parameters
-    train_loader = data.train_dataloader()
-    val_loader = data.val_dataloader()
+    # # Total image to read in. In this case, it's 10 (for both train and val). With split = 0.7, 7 wll go to train and 3 will go to val
+    datamodule.setup(train_size=30)
 
-    #Should print out in the format (batch_num, channel = 1, 64,64,64) -> eg (2,1,64,64,64) when batch_size = 2
-    print(len(train_loader))
+    # #Loadin the data according to the upper parameters
+    train_loader = datamodule.train_dataloader()
+    val_loader = datamodule.val_dataloader()
+
     for batch_idx, batch in enumerate(train_loader):
-        print(batch["image"].shape)
-        # print(batch["image"][0].shape)
-        print(batch["label"].shape)
+        print(batch["image"][0].shape)
+        print(torch.unique(batch["label"]))
         break
 
-    
     unet = HarDUNet(arch="39DS", transformer=False)
-    lr = 0.01
-    loss = DiceLoss
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    lr = 0.0015
+    loss = DiceCELoss
+
+    unet.cuda()
 
     hardunet_train_loop(
         model=unet,
@@ -40,6 +44,6 @@ if __name__ == "__main__":  # pragma: no cover
         loss=loss,
         device=device,
         train_data=train_loader,
-        epochs=20,
-        checks=2
+        epochs=10,
+        checks=2,
     )

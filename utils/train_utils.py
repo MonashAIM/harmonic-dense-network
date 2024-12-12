@@ -7,7 +7,6 @@ from torch.nn import functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
-import torchio as tio
 from pathlib import Path
 
 CHANNELS_DIMENSION = 1
@@ -25,17 +24,17 @@ def seed_set(seed):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 
-
 CHANNELS_DIMENSION = 1
 SPATIAL_DIMENSIONS = 2, 3, 4
 
+
 def prepare_batch(batch, device):
-    inputs = batch['image'].permute(0, 1, 4, 2, 3).to(device).float()
-    # foreground = batch['mask'][tio.DATA].permute(0, 1, 4, 2, 3).to(device).float()
-    # background = 1 - foreground
-    # targets = torch.cat((background, foreground), dim=CHANNELS_DIMENSION).float()
-    targets = batch['label'].permute(0, 1, 4, 2, 3).to(device).float() # Not really sure why we need to separate the background and foreground
+    inputs = batch["image"]
+    targets = (
+        batch["label"].permute(0, 1, 4, 2, 3).to(device).float()
+    )  # Not really sure why we need to separate the background and foreground
     return inputs, targets
+
 
 def hardunet_train_loop(
     model: nn.Module,
@@ -61,7 +60,9 @@ def hardunet_train_loop(
             logits = model(batch_X)
             # y_pred = F.softmax(logits, dim=n_classes)
             loss = loss_fn(logits, batch_y)
-            train_dice = sum(dice(F.softmax(logits, dim=n_classes), batch_y, n_classes)) / len(batch_y)
+            train_dice = sum(
+                dice(F.softmax(logits, dim=n_classes), batch_y, n_classes)
+            ) / len(batch_y)
             optim.zero_grad()
             loss.backward()
             optim.step()
@@ -120,7 +121,9 @@ def hardunet_test(
                 test_pred = (test_pred > threshold).float()
             else:  # For multi-class segmentation (e.g., softmax output)
                 test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION)
+                test_pred = torch.argmax(
+                    F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION
+                )
 
             test_preds.append(test_pred.cpu())
     return torch.cat(test_preds, dim=0)
