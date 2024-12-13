@@ -163,6 +163,7 @@ def hardunet_test(
     model.eval()
     test_losses = []
     test_preds = []
+    test_dices =[]
 
     with torch.inference_mode():
         for batch in test_data:
@@ -170,9 +171,10 @@ def hardunet_test(
             logits = model(test_X)
             test_pred = F.softmax(logits, dim=n_classes)
             test_loss = loss_fn(logits, test_y)
-            val_dice = sum(dice(logits, test_y, n_classes)) / len(test_y)
+            test_dice = sum(dice(logits, test_y, n_classes)) / len(test_y)
             test_losses.append(test_loss.item())
             test_preds.append(test_pred.cpu())
+            test_dices.append(test_dice)
     return torch.cat(test_preds, dim=0)
 
 

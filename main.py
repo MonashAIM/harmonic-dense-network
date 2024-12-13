@@ -1,9 +1,6 @@
 from models.HarDUNet3D import HarDUNet
 from monai.losses import DiceCELoss
-from utils.train_utils import hardunet_train_loop, prepare_batch, HardUnetTrainer
-from torch.nn import functional as F
-from torch import optim
-import torch
+from utils.train_utils import HardUnetTrainer
 from data.ISLES_dataset import ISLESDataModule
 import torch
 import json
