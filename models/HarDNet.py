@@ -1,7 +1,7 @@
 import os
 import yaml
 import torch.nn as nn
-from models.helper import Conv, HarDBlock, DWConvTransition
+from models.helper3D import Conv, HarDBlock, DWConvTransition
 from models.config_dic import config_files
 
 
@@ -67,8 +67,6 @@ class HarDNet(nn.Module):  # pragma: no cover
                 nn.Linear(ch, 1000),
             )
         )
-
-        # TODO: Look into segmentation problem
 
     def forward(self, x):
         for layer in self.layers:

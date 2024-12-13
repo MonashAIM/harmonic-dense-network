@@ -8,9 +8,13 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
 from pathlib import Path
-
-CHANNELS_DIMENSION = 1
-
+from monai.losses import DiceCELoss
+import pytorch_lightning as pl
+from torch.optim import AdamW
+import monai.transforms as transforms
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from monai.metrics import DiceMetric
+from monai.inferers import SlidingWindowInferer
 
 def seed_set(seed):
     np.random.seed(seed)
@@ -22,19 +26,66 @@ def seed_set(seed):
     random.seed(seed)
     np.random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
+class HardUnetTrainer(pl.LightningModule):
+    def __init__(self, unet, loss=DiceCELoss(sigmoid=True, squared_pred=True),
+                 optim=AdamW, sched=CosineAnnealingLR, lr=0.0001, decay=0.01, device='cpu',
+                 model_type='2D'):
+        super().__init__()
+        self.net = unet
+        self.loss = loss
+        self.dice_metric = DiceMetric(reduction="mean_batch", get_not_nans=True)
+        self.max_epochs = 500
+        self.post = transforms.Compose(
+            [transforms.Activations(sigmoid=True), transforms.AsDiscrete(threshold=0.5)]
+        )
+        if model_type=='3D':
+            self.inferer = SlidingWindowInferer(
+                roi_size=(64, 64, 64), sw_batch_size=1, overlap=0.5
+            )
+        else:
+            self.inferer = SlidingWindowInferer(
+                roi_size=(64, 64), sw_batch_size=1, overlap=0.5
+            )
+        self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
+        self.sched = sched(self.optim, T_max=self.max_epochs)
 
+    def num_parameters(self):
+        return sum(p.numel() for p in self.net.parameters() if p.requires_grad)
+
+    def forward(self, x):
+        out = self.net(x)
+        return out
+
+    def configure_optimizers(self):
+        optimizer = self.optim
+        scheduler = self.sched
+        return [optimizer], [scheduler]
+
+    def predict_step(self, batch, batch_idx):
+        x = batch["image"]
+        y_hat = self.inferer(x, self)
+        y_hat = self.post(y_hat)
+        return y_hat
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch["image"], batch["label"]
+        y_hat = self(x)
+        loss = self.loss(y_hat, y)
+        self.log("train_loss", loss, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        y = batch["label"]
+        y_hat = self.predict_step(batch, batch_idx)
+        val_dice = self.dice_metric(y_hat, y)
+        return {"val_dice": val_dice}
+
+    def on_validation_epoch_end(self):
+        mean_val_dice, _ = self.dice_metric.aggregate()
+        self.log("val_dice", mean_val_dice, prog_bar=True)
+        self.dice_metric.reset()
 
 CHANNELS_DIMENSION = 1
-SPATIAL_DIMENSIONS = 2, 3, 4
-
-
-def prepare_batch(batch, device):
-    inputs = batch["image"]
-    targets = (
-        batch["label"].permute(0, 1, 4, 2, 3).to(device).float()
-    )  # Not really sure why we need to separate the background and foreground
-    return inputs, targets
-
 
 def hardunet_train_loop(
     model: nn.Module,
@@ -56,7 +107,7 @@ def hardunet_train_loop(
     for epoch in range(epochs):
         model.train()
         for batch in train_data:
-            batch_X, batch_y = prepare_batch(batch, device)
+            batch_X, batch_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
             logits = model(batch_X)
             # y_pred = F.softmax(logits, dim=n_classes)
             loss = loss_fn(logits, batch_y)
@@ -76,7 +127,7 @@ def hardunet_train_loop(
             val_losses = []
             with torch.no_grad():
                 for batch in eval_data:
-                    val_X, val_y = prepare_batch(batch, device)
+                    val_X, val_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
                     logits = model(val_X)
                     # val_pred = F.softmax(logits, dim=n_classes)
                     val_loss = loss_fn(logits, val_y)
@@ -103,29 +154,27 @@ def hardunet_test(
     model: nn.Module,
     device: torch.device,
     test_data: DataLoader,
+    loss: F,
     threshold: float = 0.5,
 ):  # pragma: no cover
     model = model.to(device)
+    n_classes = model.get_classes()
+    loss_fn = loss()
     model.eval()
+    test_losses = []
     test_preds = []
+    test_dices =[]
+
     with torch.inference_mode():
-        for test_X, test_y in test_data:
-            test_X, test_y = test_X.to(device), test_y.to(device)
+        for batch in test_data:
+            test_X, test_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
             logits = model(test_X)
-            test_pred = F.softmax(logits, dim=CHANNELS_DIMENSION)
-
-            if (
-                test_pred.shape[1] == 1
-            ):  # Assuming a binary segmentation model (single output channel)
-                test_pred = torch.sigmoid(test_pred)
-                test_pred = (test_pred > threshold).float()
-            else:  # For multi-class segmentation (e.g., softmax output)
-                test_pred = torch.sigmoid(test_pred)
-                test_pred = torch.argmax(
-                    F.softmax(test_pred, dim=CHANNELS_DIMENSION), dim=CHANNELS_DIMENSION
-                )
-
+            test_pred = F.softmax(logits, dim=n_classes)
+            test_loss = loss_fn(logits, test_y)
+            test_dice = sum(dice(logits, test_y, n_classes)) / len(test_y)
+            test_losses.append(test_loss.item())
             test_preds.append(test_pred.cpu())
+            test_dices.append(test_dice)
     return torch.cat(test_preds, dim=0)
 
 
@@ -138,3 +187,4 @@ def save_model(model, name):
 
     print(f"Saving {MODEL_NAME} to: {MODEL_SAVE_PATH}")
     torch.save(obj=model.state_dict(), f=MODEL_SAVE_PATH)
+
