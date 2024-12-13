@@ -3,7 +3,6 @@ from monai import transforms
 import pytorch_lightning as pl
 import os
 
-
 class ISLESDataModule(pl.LightningDataModule):
     def __init__(
         self,
