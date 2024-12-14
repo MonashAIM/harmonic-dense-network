@@ -16,6 +16,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from monai.metrics import DiceMetric
 from monai.inferers import SlidingWindowInferer
 
+
 def seed_set(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -26,10 +27,20 @@ def seed_set(seed):
     random.seed(seed)
     np.random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
+
+
 class HardUnetTrainer(pl.LightningModule):
-    def __init__(self, unet, loss=DiceCELoss(sigmoid=True, squared_pred=True),
-                 optim=AdamW, sched=CosineAnnealingLR, lr=0.0001, decay=0.01, device='cpu',
-                 model_type='2D'):
+    def __init__(
+        self,
+        unet,
+        loss=DiceCELoss(sigmoid=True, squared_pred=True),
+        optim=AdamW,
+        sched=CosineAnnealingLR,
+        lr=0.0001,
+        decay=0.01,
+        device="cpu",
+        model_type="2D",
+    ):
         super().__init__()
         self.net = unet
         self.loss = loss
@@ -38,13 +49,13 @@ class HardUnetTrainer(pl.LightningModule):
         self.post = transforms.Compose(
             [transforms.Activations(sigmoid=True), transforms.AsDiscrete(threshold=0.5)]
         )
-        if model_type=='3D':
+        if model_type == "3D":
             self.inferer = SlidingWindowInferer(
                 roi_size=(64, 64, 64), sw_batch_size=1, overlap=0.5
             )
         else:
             self.inferer = SlidingWindowInferer(
-                roi_size=(64, 64), sw_batch_size=1, overlap=0.5
+                roi_size=(128, 128), sw_batch_size=1, overlap=0.5
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
@@ -85,7 +96,9 @@ class HardUnetTrainer(pl.LightningModule):
         self.log("val_dice", mean_val_dice, prog_bar=True)
         self.dice_metric.reset()
 
+
 CHANNELS_DIMENSION = 1
+
 
 def hardunet_train_loop(
     model: nn.Module,
@@ -107,7 +120,10 @@ def hardunet_train_loop(
     for epoch in range(epochs):
         model.train()
         for batch in train_data:
-            batch_X, batch_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
+            batch_X, batch_y = (
+                batch["image"].to(device).float(),
+                batch["mask"].to(device).float(),
+            )
             logits = model(batch_X)
             # y_pred = F.softmax(logits, dim=n_classes)
             loss = loss_fn(logits, batch_y)
@@ -127,7 +143,10 @@ def hardunet_train_loop(
             val_losses = []
             with torch.no_grad():
                 for batch in eval_data:
-                    val_X, val_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
+                    val_X, val_y = (
+                        batch["image"].to(device).float(),
+                        batch["mask"].to(device).float(),
+                    )
                     logits = model(val_X)
                     # val_pred = F.softmax(logits, dim=n_classes)
                     val_loss = loss_fn(logits, val_y)
@@ -163,11 +182,14 @@ def hardunet_test(
     model.eval()
     test_losses = []
     test_preds = []
-    test_dices =[]
+    test_dices = []
 
     with torch.inference_mode():
         for batch in test_data:
-            test_X, test_y = batch['image'].to(device).float(), batch['mask'].to(device).float()
+            test_X, test_y = (
+                batch["image"].to(device).float(),
+                batch["mask"].to(device).float(),
+            )
             logits = model(test_X)
             test_pred = F.softmax(logits, dim=n_classes)
             test_loss = loss_fn(logits, test_y)
@@ -187,4 +209,3 @@ def save_model(model, name):
 
     print(f"Saving {MODEL_NAME} to: {MODEL_SAVE_PATH}")
     torch.save(obj=model.state_dict(), f=MODEL_SAVE_PATH)
-

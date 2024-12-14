@@ -4,6 +4,7 @@ import torch.nn as nn
 from models.helper2D import Bottleneck, Down, Up, Conv
 from models.config_dic import config_files
 
+
 class HarDUNet2D(nn.Module):
     def __init__(
         self,
@@ -18,7 +19,7 @@ class HarDUNet2D(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.model_type = '2D'
+        self.model_type = "2D"
         # Down and Up U-Net
         self.classes = n_classes
         config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
@@ -160,7 +161,7 @@ class HarDUNet2D(nn.Module):
         for layer in self.outc:
             x = layer(x)
 
-        return x 
+        return x
 
     def get_classes(self):
         return self.classes
@@ -168,10 +169,12 @@ class HarDUNet2D(nn.Module):
     def get_model_type(self):
         return self.model_type
 
+
 if __name__ == "__main__":
     import torch
+
     temp = torch.randn(size=(1, 1, 112, 112))
-    model = HarDUNet2D(arch='39DS',transformer=True)
+    model = HarDUNet2D(arch="39DS", transformer=True)
     # print(model)
     out = model(temp)
     print(model.get_model_type())

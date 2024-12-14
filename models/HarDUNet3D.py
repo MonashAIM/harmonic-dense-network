@@ -19,7 +19,7 @@ class HarDUNet3D(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.model_type = '3D'
+        self.model_type = "3D"
         # Down and Up U-Net
         self.classes = n_classes
         config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
@@ -168,6 +168,7 @@ class HarDUNet3D(nn.Module):
 
     def get_model_type(self):
         return self.model_type
+
 
 if __name__ == "__main__":
     # import torch
