@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+
 class DWConvTransition(nn.Sequential):
     def __init__(self, in_channels, kernel=3, stride=1, padding=1, bias=False):
         super().__init__()
@@ -60,6 +61,7 @@ class Conv(nn.Sequential):
             self.add_module(name="act", module=nn.Tanh())
         else:
             print("Unknown activation function")
+
 
 class CombConv(nn.Sequential):
     def __init__(
@@ -239,6 +241,7 @@ class Up(nn.Module):
 
     def get_out_ch(self):
         return self.block.get_out_ch()
+
 
 class Down(nn.Module):
     def __init__(

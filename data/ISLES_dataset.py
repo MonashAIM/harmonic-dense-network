@@ -3,6 +3,7 @@ from monai import transforms
 import pytorch_lightning as pl
 import os
 
+
 class ISLESDataModule(pl.LightningDataModule):
     def __init__(
         self,
@@ -26,9 +27,6 @@ class ISLESDataModule(pl.LightningDataModule):
         self.train_transform = self.get_train_transform()
         self.val_transform = self.get_val_transform()
         self.train_set = self.val_set = self.test_set = None
-
-    # def __len__(self):
-    #     return len(self.img_files)
 
     def setup(self, train_size=None, stage=None):
         train_data = []
