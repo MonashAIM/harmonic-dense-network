@@ -6,6 +6,7 @@ from models.HarDUNet2D import HarDUNet2D
 import torch
 import json
 import pytorch_lightning as pl
+from dvclive.lightning import DVCLiveLogger
 
 pl.seed_everything(42, workers=True)
 # torch.set_default_dtype(torch.float32)
@@ -35,16 +36,15 @@ if __name__ == "__main__":  # pragma: no cover
     loss = DiceCELoss
 
     model = HardUnetTrainer(unet=unet, device=device, model_type=unet.get_model_type())
-    tb_logger = pl.loggers.TensorBoardLogger(
-        save_dir="./logs", name="hardunet"
-    )  # Just change logs directory
+    logger = DVCLiveLogger(log_model=True)
+
 
     # initialize Lightning's trainer.
     trainer = pl.Trainer(
         accelerator="gpu",
         devices=1,
         max_epochs=20,
-        logger=tb_logger,
+        logger=logger,
         log_every_n_steps=5,
         check_val_every_n_epoch=1,
     )

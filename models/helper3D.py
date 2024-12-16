@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
 class DWConvTransition(nn.Sequential):
     def __init__(self, in_channels, kernel=3, stride=1, padding=1, bias=False):
         super().__init__()
@@ -22,7 +21,6 @@ class DWConvTransition(nn.Sequential):
 
     def forward(self, x):
         return super().forward(x)
-
 
 class Conv(nn.Sequential):
     def __init__(
@@ -62,7 +60,6 @@ class Conv(nn.Sequential):
         else:
             print("Unknown activation function")
 
-
 class CombConv(nn.Sequential):
     def __init__(
         self,
@@ -87,7 +84,6 @@ class CombConv(nn.Sequential):
             "dwconv",
             DWConvTransition(out_channel, stride=stride),
         )
-
 
 class HarDBlock(nn.Module):
     def __init__(
@@ -169,6 +165,26 @@ class HarDBlock(nn.Module):
         out = torch.cat(out, 1)
         return out
 
+def passthrough(x, *args, **kwargs):
+    return x
+
+class InputTransition(nn.Module):
+    def __init__(self, outChans, act="elu"):
+        super().__init__()
+        self.outch = outChans
+        self.conv1 = nn.Conv3d(1, outChans, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm3d(outChans)
+        if act=='elu':
+            self.act = nn.ELU()
+        else:
+            self.act = nn.ReLU()
+
+    def forward(self, x):
+        # do we want a PRELU here as well?
+        out = self.bn1(self.conv1(x))
+        x16 = torch.cat((x for x in range(self.outch)), 1) # BCDHW
+        out = self.relu1(torch.add(out, x16))
+        return out
 
 class Up(nn.Module):
     def __init__(
@@ -180,70 +196,33 @@ class Up(nn.Module):
         act="relu",
         dwconv=True,
         keepbase=False,
-        trilinear=True,
         *args,
         **kwargs,
     ):
         super().__init__()
-        if trilinear:
-            self.up = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
-            self.conv = Conv(
-                2 * in_channels, in_channels, act=act, kernel=3, padding=1, bias=False
-            )
-            self.block = HarDBlock(
-                in_channels,
-                n_layers,
-                k,
-                m,
-                act=act,
-                dwconv=dwconv,
-                keepbase=keepbase,
-                trilinear=trilinear,
-            )
-        else:
-            self.up = nn.ConvTranspose3d(
-                in_channels, in_channels // 2, kernel_size=2, stride=2
-            )
-            self.conv = Conv(
-                in_channels, in_channels, act=act, kernel=3, padding=1, bias=False
-            )
-            self.block = HarDBlock(
-                in_channels,
-                n_layers,
-                k,
-                m,
-                act=act,
-                dwconv=dwconv,
-                keepbase=keepbase,
-                trilinear=trilinear,
-            )
+        block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase)
+        self.out_ch = block.get_out_ch() 
+        self.ops = block
+        self.up_conv = nn.ConvTranspose3d(in_channels, self.out_ch // 2, kernel_size=2, stride=2)
+        self.bn1 = nn.BatchNorm3d(self.out_ch // 2)
+        self.do1 = passthrough
+        self.do2 = nn.Dropout3d()
+        self.relu1 = nn.ELU()
+        self.relu2 = nn.ELU()
 
     def forward(self, x1, x2):
-        x1 = self.up(x1)
-        # Assuming input BCHW
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
-        diffZ = x2.size()[4] - x1.size()[4]
-
-        x1 = F.pad(
-            x1,
-            [
-                diffZ // 2,
-                diffZ - diffZ // 2,
-                diffX // 2,
-                diffX - diffX // 2,
-                diffY // 2,
-                diffY - diffY // 2,
-            ],
-        )
-
-        x = torch.cat([x2, x1], dim=1)
-        x = self.conv(x)
-        x = self.block(x)
-        return x
+        out1 = self.do1(x1)
+        out2 = self.do2(x2)
+        print(out1.shape)
+        print(out2.shape)
+        out1 = self.relu1(self.bn1(self.up_conv(out1)))
+        xcat = torch.cat((out1, out2), 1)
+        out1 = self.ops(xcat)
+        out1 = self.relu2(torch.add(out1, xcat))
+        return out1
 
     def get_out_ch(self):
-        return self.block.get_out_ch()
+        return self.out_ch
 
 
 class Down(nn.Module):
@@ -261,30 +240,57 @@ class Down(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.down = nn.ModuleList(
-            [
-                nn.MaxPool3d(2),
-                HarDBlock(
-                    in_channels, n_layers, k, m, act="relu", dwconv=True, keepbase=False
-                ),
-            ]
-        )
-
+        block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase)
+        self.out_ch = block.get_out_ch()
+        self.ops = block
+        self.down_conv = nn.Conv3d(in_channels, self.out_ch, kernel_size=2, stride=2)
+        self.temp_conv = nn.Conv3d(self.out_ch, in_channels, kernel_size=1, stride=1)
+        self.bn1 = nn.BatchNorm3d(self.out_ch)
+        self.bn2 = nn.BatchNorm3d(in_channels)
+        self.relu1 = nn.ELU()
+        self.relu2 = nn.ELU()
+        self.relu3 = nn.ELU()
+        self.temp = passthrough
+        
     def forward(self, x):
-        for layer in self.down:
-            x = layer(x)
-        return x
+        down = self.relu1(self.bn1(self.down_conv(x)))
+        out = self.relu2(self.bn2(self.temp_conv(down)))
+        out = self.ops(out)
+        # print(down.shape)
+        # print(out.shape)
+        out = self.relu3(torch.add(out, down))
+        return out
 
     def get_out_ch(self):
-        return self.down[1].get_out_ch()
+        return self.out_ch
 
-
-class Bottleneck(nn.Module):
-    def __init__(self, ch, act="relu", *args, **kwargs):
+class OutputTransition(nn.Module):
+    def __init__(self, inChans, nll):
         super().__init__()
-        self.layers = nn.Sequential(
-            Conv(ch, ch, act=act, kernel=3), Conv(ch, ch, act=act, kernel=3)
-        )
+        self.conv1 = nn.Conv3d(inChans, 2, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm3d(2)
+        self.conv2 = nn.Conv3d(2, 2, kernel_size=1)
+        self.relu1 = nn.ELU()
 
     def forward(self, x):
-        return self.layers(x)
+        # convolve 32 down to 2 channels
+        out = self.relu1(self.bn1(self.conv1(x)))
+        out = self.conv2(out)
+
+        # make channels the last axis
+        out = out.permute(0, 2, 3, 4, 1).contiguous()
+        # flatten
+        out = out.view(out.numel() // 2, 2)
+        out = self.softmax(out)
+        # treat channel 0 as the predicted output
+        return out
+
+# class Bottleneck(nn.Module):
+#     def __init__(self, ch, act="relu", *args, **kwargs):
+#         super().__init__()
+#         self.layers = nn.Sequential(
+#             Conv(ch, ch, act=act, kernel=3), Conv(ch, ch, act=act, kernel=3)
+#         )
+
+#     def forward(self, x):
+#         return self.layers(x)

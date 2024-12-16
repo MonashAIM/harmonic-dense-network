@@ -1,5 +1,5 @@
 from utils.train_utils import hardunet_train_loop
-from models.HarDUNet3D import HarDUNet
+from models.HarDVNet3D import HarDUNet
 from data.torchio_dataset import get_isles_22
 from torch.nn import functional as F
 import dvc.api
