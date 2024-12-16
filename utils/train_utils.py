@@ -97,7 +97,9 @@ class HardUnetTrainer(pl.LightningModule):
         self.log("val_dice", mean_val_dice, prog_bar=True)
         self.dice_metric.reset()
 
+
 CHANNELS_DIMENSION = 1
+
 
 def hardunet_train_loop(
     model: nn.Module,
