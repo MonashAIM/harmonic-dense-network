@@ -59,6 +59,7 @@ class HardUnetTrainer(pl.LightningModule):
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
+        self.save_hyperparameters()
 
     def num_parameters(self):
         return sum(p.numel() for p in self.net.parameters() if p.requires_grad)
@@ -96,9 +97,7 @@ class HardUnetTrainer(pl.LightningModule):
         self.log("val_dice", mean_val_dice, prog_bar=True)
         self.dice_metric.reset()
 
-
 CHANNELS_DIMENSION = 1
-
 
 def hardunet_train_loop(
     model: nn.Module,
