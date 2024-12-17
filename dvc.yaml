@@ -1,25 +1,37 @@
 stages:
   prepare:
-    cmd: python .\steps\prepare.py
+    cmd: python .\src\steps\prepare.py
     deps:
-      - .\data\covid
-      - .\steps\prepare.py
+    - .\src\data\covid
+    - .\src\steps\prepare.py
     params:
-      - prepare.trainNum
-      - prepare.dataset
+    - prepare.trainNum
+    - prepare.dataset
     outs:
-      - .\data\covid_dataset.json
+    - .\src\data\covid_dataset.json
   train:
-    cmd: python .\steps\train.py
+    cmd: python -m src.steps.train
     deps:
-      - .\data\covid
-      - .\steps\train.py
-      - .\data\covid_dataset.json
+    - .\src\data\covid
+    - .\src\steps\train.py
+    - .\src\data\covid_dataset.json
     params:
-      - train.config
-      - train.roi_size_w
-      - train.roi_size_h
-      - train.batch_size
-      - prepare.dataset
+    - train.config
+    - train.roi_size_w
+    - train.roi_size_h
+    - train.lr
+    - train.batch_size
+    - prepare.dataset
     outs:
-      - .\weights\hardnet_${train.config}_${prepare.dataset}.pth
+    - .\src\weights\latest_weight.ckpt
+params:
+- dvclive/params.yaml
+metrics:
+- dvclive/metrics.json
+plots:
+- dvclive/plots/metrics:
+    x: step
+artifacts:
+  best:
+    path: dvclive/artifacts/epoch=19-step=280.ckpt
+    type: model

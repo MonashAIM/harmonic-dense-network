@@ -55,7 +55,7 @@ class CovidDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_set,
-            batch_size=1,
+            batch_size=5,
             num_workers=self.num_workers,
         )
 

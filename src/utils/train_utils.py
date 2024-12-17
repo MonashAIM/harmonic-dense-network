@@ -61,7 +61,7 @@ class HardUnetTrainer(pl.LightningModule):
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['unet', 'loss'])
 
     def num_parameters(self):
         return sum(p.numel() for p in self.net.parameters() if p.requires_grad)

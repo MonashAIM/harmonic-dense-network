@@ -1,8 +1,8 @@
 import os
 import yaml
 import torch.nn as nn
-from models.helper2D import Bottleneck, Down, Up, Conv
-from models.config_dic import config_files
+from src.models.helper2D import Bottleneck, Down, Up, Conv
+from src.models.config_dic import config_files
 
 
 class HarDUNet2D(nn.Module):
@@ -22,7 +22,7 @@ class HarDUNet2D(nn.Module):
         self.model_type = "2D"
         # Down and Up U-Net
         self.classes = n_classes
-        config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
+        config_path = os.path.join(os.getcwd(),"src", "models", "configs", config_files[arch])
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 

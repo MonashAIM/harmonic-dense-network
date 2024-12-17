@@ -14,6 +14,7 @@ if __name__ == "__main__":
     dataset["training"] = []
 
     img_path = os.path.join(
+        "src",
         "data",
         "covid",
         "images",
@@ -39,5 +40,5 @@ if __name__ == "__main__":
         else:
             break
 
-    with open(f".\data\{dataset_name}_dataset.json", "w") as f:
+    with open(f".\src\data\{dataset_name}_dataset.json", "w") as f:
         json.dump(dataset, f)
