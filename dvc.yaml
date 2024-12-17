@@ -1,10 +1,25 @@
 stages:
-  train:
-    cmd: python train.py
+  prepare:
+    cmd: python .\steps\prepare.py
     deps:
-      - .\data\ISLES-2022
-      - train.py
+      - .\data\covid
+      - .\steps\prepare.py
+    params:
+      - prepare.trainNum
+      - prepare.dataset
+    outs:
+      - .\data\covid_dataset.json
+  train:
+    cmd: python .\steps\train.py
+    deps:
+      - .\data\covid
+      - .\steps\train.py
+      - .\data\covid_dataset.json
     params:
       - train.config
+      - train.roi_size_w
+      - train.roi_size_h
+      - train.batch_size
+      - prepare.dataset
     outs:
-      - .\weights\hardUNet_local.pth
+      - .\weights\hardnet_${train.config}_${prepare.dataset}.pth

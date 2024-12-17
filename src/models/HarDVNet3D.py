@@ -98,7 +98,6 @@ class HarDVNet3D(nn.Module):
         self.outc.append(Conv(first_ch[0], init_ch, kernel=3, stride=1, bias=False))
         self.outc.append(Conv(init_ch, self.classes, kernel=1, stride=1, bias=False))
 
-
     def forward(self, x):
         outs = []
         for layer in self.start:
@@ -134,8 +133,9 @@ class HarDVNet3D(nn.Module):
 
 if __name__ == "__main__":
     import torch
+
     temp = torch.randn(size=(1, 1, 73, 112, 112))
-    model = HarDVNet3D(arch='39DS')
+    model = HarDVNet3D(arch="39DS")
     # print(model)
     out = model(temp)
     print(model.get_model_type())

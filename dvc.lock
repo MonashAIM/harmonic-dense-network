@@ -1,0 +1,23 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python .\steps\prepare.py
+    deps:
+    - path: .\data\covid
+      hash: md5
+      md5: bf96f965715913aa4eb1f82377a808e8.dir
+      size: 907897640
+      nfiles: 5458
+    - path: .\steps\prepare.py
+      hash: md5
+      md5: 02e2e8086e1d8ac39f66518a1e107451
+      size: 1132
+    params:
+      params.yaml:
+        prepare.dataset: covid
+        prepare.trainNum: 150
+    outs:
+    - path: .\data\covid_dataset.json
+      hash: md5
+      md5: e50abda31da1be8e3720b5971359e734
+      size: 19340

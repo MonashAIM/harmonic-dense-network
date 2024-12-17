@@ -2,12 +2,12 @@ from monai.data import Dataset, DataLoader
 from monai.data.image_reader import PILReader
 from monai import transforms
 import pytorch_lightning as pl
-import os, glob
 
 
 class CovidDataModule(pl.LightningDataModule):
     def __init__(
         self,
+        data_properties,
         fold=0,
         batch_size=2,
         num_workers=0,
@@ -17,6 +17,7 @@ class CovidDataModule(pl.LightningDataModule):
         super().__init__()
 
         self.device = device
+        self.data_properties = data_properties
         self.fold = fold
         self.batch_size = batch_size
         self.num_workers = num_workers
@@ -30,18 +31,11 @@ class CovidDataModule(pl.LightningDataModule):
         train_data = []
         val_data = []
 
-        img_path = os.path.join(
-            "data",
-            "covid",
-            "images",
-            f"bjorke*",
-        )
-
-        img_files = glob.glob(img_path)
-
-        for image_path in img_files:
-            label_path = image_path.replace("images", "labels")
-            train_data.append({"image": image_path, "label": label_path})
+        for sample in self.data_properties["training"]:
+            if sample["fold"] == self.fold:
+                val_data.append({"image": sample["image"], "label": sample["label"]})
+            else:
+                train_data.append({"image": sample["image"], "label": sample["label"]})
 
         self.train_set = Dataset(
             train_data, transform=self.train_transform, **self.dataset_kwargs
