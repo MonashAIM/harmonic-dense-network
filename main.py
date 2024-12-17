@@ -6,7 +6,6 @@ from models.HarDUNet2D import HarDUNet2D
 import torch
 import json
 import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
 
 pl.seed_everything(42, workers=True)
 # torch.set_default_dtype(torch.float32)
@@ -37,7 +36,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     model = HardUnetTrainer(unet=unet, device=device, model_type=unet.get_model_type())
     logger = DVCLiveLogger(log_model=True)
-
 
     # initialize Lightning's trainer.
     trainer = pl.Trainer(

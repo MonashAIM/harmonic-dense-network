@@ -1,25 +1,22 @@
 import os
 import yaml
 import torch.nn as nn
-from models.helper2D import Bottleneck, Down, Up, Conv
-from models.config_dic import config_files
+from helper3D import Down, Up, Conv
+from config_dic import config_files
 
 
-class HarDUNet2D(nn.Module):
+class HarDVNet3D(nn.Module):
     def __init__(
         self,
         n_classes=1,
         arch="68",
         act="relu",
-        transformer=False,
-        transformer_n=4,
         keepbase=False,
-        bilinear=True,
         *args,
         **kwargs,
     ):
         super().__init__()
-        self.model_type = "2D"
+        self.model_type = "3D"
         # Down and Up U-Net
         self.classes = n_classes
         config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
@@ -69,7 +66,6 @@ class HarDUNet2D(nn.Module):
                 act=act,
                 dwconv=depthwise,
                 keepbase=keepbase,
-                bilinear=True,
             )
             ch = block.get_out_ch()
             self.dec.append(block)
@@ -91,7 +87,6 @@ class HarDUNet2D(nn.Module):
             act=act,
             dwconv=depthwise,
             keepbase=keepbase,
-            bilinear=True,
         )
         ch = block.get_out_ch()
         self.dec.append(block)
@@ -103,32 +98,11 @@ class HarDUNet2D(nn.Module):
         self.outc.append(Conv(first_ch[0], init_ch, kernel=3, stride=1, bias=False))
         self.outc.append(Conv(init_ch, self.classes, kernel=1, stride=1, bias=False))
 
-        # Bottleneck
-        self.transformer = transformer
-        self.transformer_n = transformer_n
-        self.bottleneck = nn.ModuleList()
-        if self.transformer:
-            for _ in range(self.transformer_n):
-                self.bottleneck.append(nn.Transformer(d_model=ch_list[-1]))
-        else:
-            self.bottleneck = nn.ModuleList([Bottleneck(ch_list[-1], act=act)])
-
-        if bilinear:
-            self.bottleneck.append(
-                nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
-            )
-        else:
-            self.bottleneck.append(
-                nn.ConvTranspose2d(
-                    ch_list[-1], ch_list[-1] // 2, kernel_size=2, stride=2
-                )
-            )
-        self.bottleneck.append(Conv(ch_list[-1], ch_list[-2], act=act, kernel=1))
-
     def forward(self, x):
         outs = []
         for layer in self.start:
             x = layer(x)
+        # print(x.shape)
         outs.append(x)
         for i in range(len(self.enc)):
             layer = self.enc[i]
@@ -136,19 +110,6 @@ class HarDUNet2D(nn.Module):
             if isinstance(layer, Conv) and i < (len(self.enc) - 1):
                 outs.append(x)
 
-        if self.transformer:
-            for i in range(len(self.bottleneck)):
-                layer = self.bottleneck[i]
-                if isinstance(layer, nn.Transformer):
-                    b, c, h, w = x.shape
-                    x = x.view(b * h * w, c)
-                    x = layer(x, x)
-                    x = x.view(b, c, h, w)
-                else:
-                    x = layer(x)
-        else:
-            for layer in self.bottleneck:
-                x = layer(x)
         j = 0
         for i in range(len(self.dec)):
             layer = self.dec[i]
@@ -173,8 +134,8 @@ class HarDUNet2D(nn.Module):
 if __name__ == "__main__":
     import torch
 
-    temp = torch.randn(size=(1, 1, 112, 112))
-    model = HarDUNet2D(arch="39DS", transformer=True)
+    temp = torch.randn(size=(1, 1, 73, 112, 112))
+    model = HarDVNet3D(arch="39DS")
     # print(model)
     out = model(temp)
     print(model.get_model_type())

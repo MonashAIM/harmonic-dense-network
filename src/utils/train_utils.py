@@ -40,6 +40,8 @@ class HardUnetTrainer(pl.LightningModule):
         decay=0.01,
         device="cpu",
         model_type="2D",
+        roi_size_w = 128,
+        roi_size_h = 128
     ):
         super().__init__()
         self.net = unet
@@ -51,15 +53,15 @@ class HardUnetTrainer(pl.LightningModule):
         )
         if model_type == "3D":
             self.inferer = SlidingWindowInferer(
-                roi_size=(64, 64, 64), sw_batch_size=1, overlap=0.5
+                roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.5
             )
         else:
             self.inferer = SlidingWindowInferer(
-                roi_size=(128, 128), sw_batch_size=1, overlap=0.5
+                roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.5
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['unet', 'loss'])
 
     def num_parameters(self):
         return sum(p.numel() for p in self.net.parameters() if p.requires_grad)
@@ -97,7 +99,9 @@ class HardUnetTrainer(pl.LightningModule):
         self.log("val_dice", mean_val_dice, prog_bar=True)
         self.dice_metric.reset()
 
+
 CHANNELS_DIMENSION = 1
+
 
 def hardunet_train_loop(
     model: nn.Module,

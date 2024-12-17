@@ -1,10 +1,37 @@
 stages:
-  train:
-    cmd: python train.py
+  prepare:
+    cmd: python .\src\steps\prepare.py
     deps:
-      - .\data\ISLES-2022
-      - train.py
+    - .\src\data\covid
+    - .\src\steps\prepare.py
     params:
-      - train.config
+    - prepare.trainNum
+    - prepare.dataset
     outs:
-      - .\weights\hardUNet_local.pth
+    - .\src\data\covid_dataset.json
+  train:
+    cmd: python -m src.steps.train
+    deps:
+    - .\src\data\covid
+    - .\src\steps\train.py
+    - .\src\data\covid_dataset.json
+    params:
+    - train.config
+    - train.roi_size_w
+    - train.roi_size_h
+    - train.lr
+    - train.batch_size
+    - prepare.dataset
+    outs:
+    - .\src\weights\latest_weight.ckpt
+params:
+- dvclive/params.yaml
+metrics:
+- dvclive/metrics.json
+plots:
+- dvclive/plots/metrics:
+    x: step
+artifacts:
+  best:
+    path: dvclive/artifacts/epoch=19-step=280.ckpt
+    type: model

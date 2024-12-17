@@ -162,9 +162,9 @@ cython_debug/
 #.idea/
 
 #ixi_tiny images
-data/ixi_tiny/
-data/ISLES-2022/
-data/covid
+src/data/ixi_tiny/
+src/data/ISLES-2022/
+src/data/covid
 
 .dvc/config
 

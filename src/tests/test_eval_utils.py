@@ -4,7 +4,7 @@ import numpy as np
 import os
 from unittest import TestCase
 
-from utils import eval_utils
+from src.utils import eval_utils
 
 
 class TestEvalUtils(TestCase):
