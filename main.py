@@ -6,6 +6,7 @@ from models.HarDUNet2D import HarDUNet2D
 import torch
 import json
 import pytorch_lightning as pl
+from dvclive.lightning import DVCLiveLogger
 
 pl.seed_everything(42, workers=True)
 # torch.set_default_dtype(torch.float32)
