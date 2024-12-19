@@ -1,8 +1,8 @@
 import os
 import yaml
 import torch.nn as nn
-from helper3D import Down, Up, Conv
-from config_dic import config_files
+from src.models.helper3D import Down, Up, Conv, HarDBlock
+from src.models.config_dic import config_files
 
 
 class HarDVNet3D(nn.Module):
@@ -44,21 +44,31 @@ class HarDVNet3D(nn.Module):
         self.start.append(Conv(init_ch, first_ch[0], kernel=3, stride=1, bias=False))
         self.start.append(Conv(first_ch[0], first_ch[1], kernel=second_kernel))
         ch = first_ch[1]
-        for i in range(blocks):
-            block = Down(ch, n_layers[i], gr[i], m, act=act, dwconv=depthwise)
+
+
+        block = HarDBlock(ch, n_layers[0], gr[0], m, act=act, dwconv=depthwise)
+        ch = block.get_out_ch()
+        self.enc.append(block)
+        self.enc.append(Conv(ch, ch_list[0], act=act, kernel=1))
+        ch = ch_list[0]
+        idx = 0
+        for i in range(blocks-1):
+            block = Down(ch, n_layers[idx], gr[idx], m, act=act, dwconv=depthwise)
             ch = block.get_out_ch()
             self.enc.append(block)
 
             if (i == (blocks - 1)) and (arch == "85"):
                 self.enc.append(nn.Dropout(drop_rate))
-
-            self.enc.append(Conv(ch, ch_list[i], act=act, kernel=1))
-            ch = ch_list[i]
+            idx+=1
+            self.enc.append(Conv(ch, ch_list[idx], act=act, kernel=1))
+            ch = ch_list[idx]
 
         self.dec = nn.ModuleList([])
         ch = ch_list[blocks - 2]
-        for j in range(blocks - 2, -1, -1):
+        prev_ch = ch_list[blocks - 1]
+        for j in range(blocks-1, 0, -1):
             block = Up(
+                prev_ch,
                 ch,
                 n_layers[j - 1],
                 gr[j - 1],
@@ -77,9 +87,11 @@ class HarDVNet3D(nn.Module):
                 self.dec.append(Conv(ch, ch_list[j - 1], act=act, kernel=1))
             else:
                 self.dec.append(Conv(ch, first_ch[1], act=act, kernel=1))
-            ch = ch_list[j - 1]
+            ch = ch_list[j-2]
+            prev_ch = ch_list[j-1]
 
         block = Up(
+            ch_list[0],
             first_ch[1],
             n_layers[0],
             gr[0],
@@ -98,18 +110,24 @@ class HarDVNet3D(nn.Module):
         self.outc.append(Conv(first_ch[0], init_ch, kernel=3, stride=1, bias=False))
         self.outc.append(Conv(init_ch, self.classes, kernel=1, stride=1, bias=False))
 
+
     def forward(self, x):
         outs = []
         for layer in self.start:
             x = layer(x)
         # print(x.shape)
-        outs.append(x)
+        
         for i in range(len(self.enc)):
             layer = self.enc[i]
             x = layer(x)
-            if isinstance(layer, Conv) and i < (len(self.enc) - 1):
+            if isinstance(layer, Down) or isinstance(layer, HarDBlock):
+                # print(i, layer.inch, layer.n_layers, layer.k, layer.out_ch)
                 outs.append(x)
-
+        # print(f"awwa {x.shape}")
+        
+        # for i in outs:
+            # print(f"outs {i.shape}")
+            
         j = 0
         for i in range(len(self.dec)):
             layer = self.dec[i]
@@ -133,9 +151,8 @@ class HarDVNet3D(nn.Module):
 
 if __name__ == "__main__":
     import torch
-
     temp = torch.randn(size=(1, 1, 73, 112, 112))
-    model = HarDVNet3D(arch="39DS")
+    model = HarDVNet3D(arch='39DS')
     # print(model)
     out = model(temp)
     print(model.get_model_type())

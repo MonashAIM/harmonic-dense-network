@@ -2,7 +2,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
 class DWConvTransition(nn.Sequential):
     def __init__(self, in_channels, kernel=3, stride=1, padding=1, bias=False):
         super().__init__()
@@ -22,7 +21,6 @@ class DWConvTransition(nn.Sequential):
 
     def forward(self, x):
         return super().forward(x)
-
 
 class Conv(nn.Sequential):
     def __init__(
@@ -62,7 +60,6 @@ class Conv(nn.Sequential):
         else:
             print("Unknown activation function")
 
-
 class CombConv(nn.Sequential):
     def __init__(
         self,
@@ -71,6 +68,7 @@ class CombConv(nn.Sequential):
         act="relu",
         kernel=1,
         stride=1,
+        padding=0
     ):
         super().__init__()
 
@@ -85,9 +83,8 @@ class CombConv(nn.Sequential):
         )
         self.add_module(
             "dwconv",
-            DWConvTransition(out_channel, stride=stride),
+            DWConvTransition(out_channel, stride=stride, padding=padding),
         )
-
 
 class HarDBlock(nn.Module):
     def __init__(
@@ -106,17 +103,19 @@ class HarDBlock(nn.Module):
         self.links = []
         layers = []
         self.keepbase = keepbase
-        self.out_channels = 0
-
+        self.out_ch = 0
+        self.inch = in_channels
+        self.n_layers = n_layers
+        self.k = k
         for i in range(n_layers):
             in_ch, out_ch, links = self.get_links(i + 1, in_channels, k, m)
             self.links.append(links)
             if dwconv:
-                layers.append(CombConv(in_ch, out_ch, act=act))
+                layers.append(CombConv(in_ch, out_ch, act=act, kernel=5, padding=1))
             else:
-                layers.append(Conv(in_ch, out_ch, act=act))
+                layers.append(Conv(in_ch, out_ch, act=act, kernel=5, padding=1))
             if (i % 2 == 0) or (i == n_layers - 1):
-                self.out_channels += out_ch
+                self.out_ch += out_ch
 
         self.layers = nn.ModuleList(layers)
 
@@ -144,7 +143,7 @@ class HarDBlock(nn.Module):
         return in_ch, out_ch, links
 
     def get_out_ch(self):
-        return self.out_channels
+        return self.out_ch
 
     def forward(self, x):
         layers = [x]
@@ -169,10 +168,8 @@ class HarDBlock(nn.Module):
         out = torch.cat(out, 1)
         return out
 
-
 def passthrough(x, *args, **kwargs):
     return x
-
 
 class InputTransition(nn.Module):
     def __init__(self, outChans, act="elu"):
@@ -180,7 +177,7 @@ class InputTransition(nn.Module):
         self.outch = outChans
         self.conv1 = nn.Conv3d(1, outChans, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm3d(outChans)
-        if act == "elu":
+        if act=='elu':
             self.act = nn.ELU()
         else:
             self.act = nn.ReLU()
@@ -188,14 +185,14 @@ class InputTransition(nn.Module):
     def forward(self, x):
         # do we want a PRELU here as well?
         out = self.bn1(self.conv1(x))
-        x16 = torch.cat((x for x in range(self.outch)), 1)  # BCDHW
+        x16 = torch.cat((x for x in range(self.outch)), 1) # BCDHW
         out = self.relu1(torch.add(out, x16))
         return out
-
 
 class Up(nn.Module):
     def __init__(
         self,
+        prev_ch,
         in_channels,
         n_layers,
         k,
@@ -207,29 +204,63 @@ class Up(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        block = HarDBlock(
-            in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase
-        )
-        self.out_ch = block.get_out_ch()
+        self.inch = in_channels
+        self.n_layers = n_layers
+        self.k = k
+        self.prev = prev_ch
+        block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase)
+        self.out_ch = block.get_out_ch() 
         self.ops = block
-        self.up_conv = nn.ConvTranspose3d(
-            in_channels, self.out_ch // 2, kernel_size=2, stride=2
-        )
-        self.bn1 = nn.BatchNorm3d(self.out_ch // 2)
+        self.up_conv = nn.ConvTranspose3d(prev_ch, self.out_ch, kernel_size=2, stride=2)
+        self.temp_conv1 = nn.Conv3d(2 * self.out_ch, in_channels, stride=1, kernel_size=1)
+        self.temp_conv2 = nn.Conv3d(2 * self.out_ch, self.out_ch, stride=1, kernel_size=1)
+        self.bn1 = nn.BatchNorm3d(self.out_ch)
+        self.bn2 = nn.BatchNorm3d(in_channels)
         self.do1 = passthrough
         self.do2 = nn.Dropout3d()
         self.relu1 = nn.ELU()
         self.relu2 = nn.ELU()
+        self.relu3 = nn.ELU()
 
     def forward(self, x1, x2):
         out1 = self.do1(x1)
         out2 = self.do2(x2)
-        print(out1.shape)
-        print(out2.shape)
+        # print('before')
+        # print(out1.shape)
+        # print(out2.shape)
+        # print(self.inch, self.n_layers, self.k, self.prev, self.out_ch)
         out1 = self.relu1(self.bn1(self.up_conv(out1)))
+        
+        diffY = out2.size()[2] - out1.size()[2]
+        diffX = out2.size()[3] - out1.size()[3]
+        diffZ = out2.size()[4] - out1.size()[4]
+        out1 = F.pad(
+            out1,
+            [
+                diffZ // 2,
+                diffZ - diffZ // 2,
+                diffX // 2,
+                diffX - diffX // 2,
+                diffY // 2,
+                diffY - diffY // 2,
+            ],
+        )
+        # print(out1.shape)
+        # print(out2.shape)
         xcat = torch.cat((out1, out2), 1)
-        out1 = self.ops(xcat)
-        out1 = self.relu2(torch.add(out1, xcat))
+        # print(xcat.shape)
+        temp = self.temp_conv1(xcat)
+        # print(xcat.shape)
+        # print(out1.shape)
+        # print(temp.shape)
+        out1 = self.ops(temp)
+        # print('add')
+        # print(xcat.shape)
+        # print(out1.shape)
+        xcat = self.temp_conv2(xcat)
+        # print(xcat.shape)
+        # print(out1.shape)
+        out1 = self.relu3(torch.add(out1, xcat))
         return out1
 
     def get_out_ch(self):
@@ -251,10 +282,11 @@ class Down(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        block = HarDBlock(
-            in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase
-        )
+        block = HarDBlock(in_channels, n_layers, k, m, act=act, dwconv=dwconv, keepbase=keepbase)
         self.out_ch = block.get_out_ch()
+        self.inch = in_channels
+        self.n_layers = n_layers
+        self.k = k
         self.ops = block
         self.down_conv = nn.Conv3d(in_channels, self.out_ch, kernel_size=2, stride=2)
         self.temp_conv = nn.Conv3d(self.out_ch, in_channels, kernel_size=1, stride=1)
@@ -264,7 +296,7 @@ class Down(nn.Module):
         self.relu2 = nn.ELU()
         self.relu3 = nn.ELU()
         self.temp = passthrough
-
+        
     def forward(self, x):
         down = self.relu1(self.bn1(self.down_conv(x)))
         out = self.relu2(self.bn2(self.temp_conv(down)))
@@ -276,7 +308,6 @@ class Down(nn.Module):
 
     def get_out_ch(self):
         return self.out_ch
-
 
 class OutputTransition(nn.Module):
     def __init__(self, inChans, nll):
@@ -298,7 +329,6 @@ class OutputTransition(nn.Module):
         out = self.softmax(out)
         # treat channel 0 as the predicted output
         return out
-
 
 # class Bottleneck(nn.Module):
 #     def __init__(self, ch, act="relu", *args, **kwargs):
