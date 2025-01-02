@@ -10,7 +10,7 @@ class HarDUNet2D(nn.Module):
         self,
         n_classes=1,
         arch="68",
-        act="relu",
+        act="relu6",
         transformer=False,
         transformer_n=4,
         keepbase=False,
@@ -22,7 +22,9 @@ class HarDUNet2D(nn.Module):
         self.model_type = "2D"
         # Down and Up U-Net
         self.classes = n_classes
-        config_path = os.path.join(os.getcwd(),"src", "models", "configs", config_files[arch])
+        config_path = os.path.join(
+            os.getcwd(), "src", "models", "configs", config_files[arch]
+        )
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 

@@ -29,7 +29,7 @@ class Conv(nn.Sequential):
         self,
         in_channel,
         out_channel,
-        act="relu",
+        act="relu6",
         kernel=3,
         stride=1,
         bias=False,
@@ -56,11 +56,15 @@ class Conv(nn.Sequential):
         elif act == "leaky":
             self.add_module(name="act", module=nn.LeakyReLU())
         elif act == "relu6":
-            self.add_module(name="act", module=nn.ReLU6())
+            self.add_module(name="act", module=nn.ReLU6(True))
         elif act == "tanh":
             self.add_module(name="act", module=nn.Tanh())
         else:
             print("Unknown activation function")
+
+
+    def forward(self, x):
+        return super().forward(x)
 
 
 class CombConv(nn.Sequential):
@@ -68,7 +72,7 @@ class CombConv(nn.Sequential):
         self,
         in_channel,
         out_channel,
-        act="relu",
+        act="relu6",
         kernel=1,
         stride=1,
     ):
@@ -88,6 +92,9 @@ class CombConv(nn.Sequential):
             DWConvTransition(out_channel, stride=stride),
         )
 
+    def forward(self, x):
+        return super().forward(x)
+
 
 class HarDBlock(nn.Module):
     def __init__(
@@ -96,7 +103,7 @@ class HarDBlock(nn.Module):
         n_layers,
         k,
         m,
-        act="relu",
+        act="relu6",
         dwconv=True,
         keepbase=False,
         *args,
