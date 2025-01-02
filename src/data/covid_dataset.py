@@ -55,7 +55,7 @@ class CovidDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(
             self.val_set,
-            batch_size=5,
+            batch_size=1,
             num_workers=self.num_workers,
         )
 
@@ -67,9 +67,13 @@ class CovidDataModule(pl.LightningDataModule):
                 image_only=True,
                 ensure_channel_first=True,
             ),
+            transforms.CropForegroundd(["image", "label"], source_key="image"),
+            transforms.Spacingd(
+                ["image", "label"], pixdim=(1.2, 1.2), mode=("nearest", "nearest")
+            ),
             transforms.Resized(keys=("image", "label"), spatial_size=(128, 128)),
             # transforms.SqueezeDimd("image", dim=0),
-            # transforms.CropForegroundd(["image", "label"], source_key="image"),
+            # transforms.SqueezeDimd("label", dim=0),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(["image", "label"], device=self.device),
@@ -87,6 +91,7 @@ class CovidDataModule(pl.LightningDataModule):
             ),
             transforms.Resized(keys=("image", "label"), spatial_size=(128, 128)),
             # transforms.SqueezeDimd("image", dim=0),
+            # transforms.SqueezeDimd("label", dim=0),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.ToTensord(
                 ["image", "label"], allow_missing_keys=True, device=self.device

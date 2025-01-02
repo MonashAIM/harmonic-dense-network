@@ -1,6 +1,6 @@
 optim: AdamW
 sched: CosineAnnealingLR
-lr: 0
+lr: 0.002
 decay: 0.01
 device: cuda
 model_type: 2D

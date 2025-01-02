@@ -165,7 +165,12 @@ cython_debug/
 src/data/ixi_tiny/
 src/data/ISLES-2022/
 src/data/covid
+src/data/MedNIST
 
 .dvc/config
+dvclive/artifacts
+dvclive/plots
+dvclive/
 
 .gdrive/
+/data_explore.ipynb
