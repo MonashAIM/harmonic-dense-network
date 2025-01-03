@@ -48,6 +48,7 @@ if __name__ == "__main__":
     loss_fn = F.binary_cross_entropy
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+
     model = HardUnetTrainer(
         unet=unet, device=device, model_type=unet.get_model_type(), lr=lr
     )

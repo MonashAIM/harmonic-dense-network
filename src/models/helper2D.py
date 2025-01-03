@@ -62,6 +62,7 @@ class Conv(nn.Sequential):
         else:
             print("Unknown activation function")
 
+
     def forward(self, x):
         return super().forward(x)
 
