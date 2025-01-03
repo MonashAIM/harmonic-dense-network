@@ -35,18 +35,19 @@ stages:
       size: 25700
     - path: .\src\steps\train.py
       hash: md5
-      md5: 7e60b0fef8c5b16f07e94f41c5ce3006
-      size: 2163
+      md5: 65114e3898a3e553f4dcaeea5d169702
+      size: 2221
     params:
       params.yaml:
         prepare.dataset: covid
-        train.batch_size: 10
+        train.batch_size: 16
         train.config: 39DS
         train.lr: 0.002
         train.roi_size_h: 128
         train.roi_size_w: 128
+        train.test_batch_size: 2
     outs:
     - path: .\src\weights\latest_weight.ckpt
       hash: md5
-      md5: bf340df2353c83c043bc91e8fc475ed4
+      md5: 022e688211bbb45ef81b0c6f958ad98e
       size: 387195861
