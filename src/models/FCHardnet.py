@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
-from src.models.hardnet_base import HarDBlock, ConvLayer
+from src.models.base_hardnet import HarDBlock, ConvLayer
 
 
 class FCHardnet(nn.Module):
@@ -14,6 +14,7 @@ class FCHardnet(nn.Module):
         n_layers = [4, 4, 8, 8, 8]
 
         blks = len(n_layers)
+        self.model_type = "2D"
         self.shortcut_layers = []
         self.base = nn.ModuleList([])
 
@@ -32,15 +33,15 @@ class FCHardnet(nn.Module):
             blk = HarDBlock(ch, gr[i], grmul, n_layers[i])
             ch = blk.get_out_ch()
             skip_connection_channel_counts.append(ch)
-            self.base.append ( blk )
-            if i < blks-1:
-              self.shortcut_layers.append(len(self.base)-1)
+            self.base.append(blk)
+            if i < blks - 1:
+                self.shortcut_layers.append(len(self.base) - 1)
 
-            self.base.append ( ConvLayer(ch, ch_list[i], kernel=1) )
+            self.base.append(ConvLayer(ch, ch_list[i], kernel=1))
             ch = ch_list[i]
 
-            if i < blks-1:
-              self.base.append ( nn.AvgPool2d(kernel_size=2, stride=2) )
+            if i < blks - 1:
+                self.base.append(nn.AvgPool2d(kernel_size=2, stride=2))
 
         cur_channels_count = ch
         prev_block_channels = ch
@@ -75,10 +76,12 @@ class FCHardnet(nn.Module):
             bias=True,
         )
 
+    def get_model_type(self):
+        return self.model_type
+
     def forward(self, x):
         skip_connections = []
         size_in = x.size()
-
 
         for i in range(len(self.base)):
             x = self.base[i](x)
@@ -95,10 +98,8 @@ class FCHardnet(nn.Module):
         out = self.finalConv(out)
 
         out = F.interpolate(
-                            out,
-                            size=(size_in[2], size_in[3]),
-                            mode="bilinear",
-                            align_corners=True)
+            out, size=(size_in[2], size_in[3]), mode="bilinear", align_corners=True
+        )
         return out
 
 

@@ -2,36 +2,36 @@ stages:
   prepare:
     cmd: python .\src\steps\prepare.py
     deps:
-    - .\src\data\covid
-    - .\src\steps\prepare.py
+      - .\src\data\covid
+      - .\src\steps\prepare.py
     params:
-    - prepare.trainNum
-    - prepare.dataset
+      - prepare.trainNum
+      - prepare.dataset
     outs:
-    - .\src\data\covid_dataset.json
-  train:
-    cmd: python -m src.steps.train
-    deps:
-    - .\src\data\covid
-    - .\src\steps\train.py
-    - .\src\data\covid_dataset.json
-    params:
-    - train.config
-    - train.roi_size_w
-    - train.roi_size_h
-    - train.lr
-    - train.batch_size
-    - prepare.dataset
-    - train.test_batch_size
-    outs:
-    - .\src\weights\latest_weight.ckpt
+      - .\src\data\covid_dataset.json
+  # train:
+  #   cmd: python -m src.steps.train
+  #   deps:
+  #   - .\src\data\covid
+  #   - .\src\steps\train.py
+  #   - .\src\data\covid_dataset.json
+  #   params:
+  #   - train.config
+  #   - train.roi_size_w
+  #   - train.roi_size_h
+  #   - train.lr
+  #   - train.batch_size
+  #   - prepare.dataset
+  #   - train.test_batch_size
+  #   outs:
+  #   - .\src\weights\latest_weight.ckpt
 params:
-- dvclive/params.yaml
+  - dvclive/params.yaml
 metrics:
-- dvclive/metrics.json
+  - dvclive/metrics.json
 plots:
-- dvclive/plots/metrics:
-    x: step
+  - dvclive/plots/metrics:
+      x: step
 artifacts:
   best:
     path: dvclive/artifacts/epoch=19-step=180-v1.ckpt

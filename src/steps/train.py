@@ -1,23 +1,26 @@
 from src.utils.train_utils import HardUnetTrainer
 from src.data.covid_dataset import CovidDataModule
-from src.models.HarDUNet2D import HarDUNet2D
+from src.models.FCHardnet import FCHardnet
 from torch.nn import functional as F
-import dvc.api
 import torch
 import json
 import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
+from pytorch_lightning.loggers import TensorBoardLogger
+import yaml
 
 if __name__ == "__main__":
-    params = dvc.api.params_show()
+    params = yaml.safe_load(open("./src/params.yml"))
 
     config_name = params["train"]["config"]
-    dataset_name = params["prepare"]["dataset"]
+    dataset_name = params["prepare-data"]["dataset"]
     roi_size_w = params["train"]["roi_size_w"]
     roi_size_h = params["train"]["roi_size_h"]
     batch_size = params["train"]["batch_size"]
     lr = params["train"]["lr"]
     test_batch_size = params["train"]["test_batch_size"]
+    opt = params["train"]["optimizer"]
+    decay = params["train"]["decay"]
+    momentum = params["train"]["momentum"]
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -43,25 +46,37 @@ if __name__ == "__main__":
         f"-----------Total number of validation batches: {len(val_loader)} ---------------------"
     )
 
-    unet = HarDUNet2D(arch=config_name)
+    model = FCHardnet(n_classes=1, in_channels=1).to(device)
 
     loss_fn = F.binary_cross_entropy
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    optimizer = None
+    if opt == "SGD":
+        optimizer = torch.optim.SGD
+    elif opt == "AdamW":
+        optimizer = torch.optim.AdamW
 
     model = HardUnetTrainer(
-        unet=unet, device=device, model_type=unet.get_model_type(), lr=lr
+        unet=model,
+        device=device,
+        model_type=model.get_model_type(),
+        optim=optimizer,
+        lr=lr,
+        decay=decay,
+        momentum=momentum,
     )
-    logger = DVCLiveLogger(log_model=True)
+
+    logger = TensorBoardLogger("tb_logs", name="test_model_name")
 
     # initialize Lightning's trainer.
     trainer = pl.Trainer(
         accelerator="gpu",
         devices=1,
         max_epochs=20,
-        logger=logger,
         log_every_n_steps=5,
         check_val_every_n_epoch=5,
+        logger=logger,
     )
 
     # train
