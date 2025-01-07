@@ -38,6 +38,7 @@ class HardUnetTrainer(pl.LightningModule):
         sched=CosineAnnealingLR,
         lr=0.0001,
         decay=0.01,
+        momentum=0.9,
         device="cpu",
         model_type="2D",
         roi_size_w=128,
@@ -59,7 +60,9 @@ class HardUnetTrainer(pl.LightningModule):
             self.inferer = SlidingWindowInferer(
                 roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.5
             )
-        self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
+        self.optim = optim(
+            self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum
+        )
         self.sched = sched(self.optim, T_max=self.max_epochs)
         self.save_hyperparameters(ignore=["unet", "loss"])
 

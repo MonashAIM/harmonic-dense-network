@@ -1,10 +1,13 @@
-prepare:
+prepare-data:
     dataset: "covid"
-    trainNum: 180
+    train_size: 2100
 train:
+    optimizer: "SGD"
     roi_size_w: 128
     roi_size_h: 128
     config: "68"
     batch_size: 16
-    test_batch_size: 2
+    test_batch_size: 5
+    decay: 0.0005
+    momentum: 0.9
     lr: 0.002
