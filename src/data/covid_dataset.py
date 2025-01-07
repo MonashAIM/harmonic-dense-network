@@ -88,6 +88,7 @@ class CovidDataModule(pl.LightningDataModule):
             transforms.Resized(keys=("image", "label"), spatial_size=(128, 128)),
             # transforms.SqueezeDimd("image", dim=0),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
+            transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(
                 ["image", "label"], allow_missing_keys=True, device=self.device
             ),

@@ -15,6 +15,7 @@ import monai.transforms as transforms
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from monai.metrics import DiceMetric
 from monai.inferers import SlidingWindowInferer
+import segmentation_models_pytorch as smp
 
 
 def seed_set(seed):
@@ -58,14 +59,16 @@ class HardUnetTrainer(pl.LightningModule):
         super().__init__()
         self.net = model
         self.loss = nn.BCELoss()
-        self.dice_metric = DiceMetric(reduction="mean_batch", get_not_nans=True)
+        self.dice_metric1 = DiceMetric(reduction="mean_batch", get_not_nans=True)
+        self.dice_metric2 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.max_epochs = 500
         self.post1 = transforms.Compose(
-            [transforms.Activations(sigmoid=True), transforms.AsDiscrete(threshold=0.5)]
-        )
-        self.post2 = transforms.Compose(
             [transforms.Activations(sigmoid=True)]
         )
+        self.post2 = transforms.Compose(
+            [transforms.AsDiscrete(threshold=0.5)]
+        )
+        
         if model_type == "3D":
             self.inferer = SlidingWindowInferer(
                 roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.25
@@ -91,38 +94,48 @@ class HardUnetTrainer(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch, batch_idx):
-        # x = batch["image"]
-        y_hat = self.inferer(batch, self)
+        x, y = batch["image"], batch["label"]
+        # print('predict')
+        # print(torch.unique(y))
+        # print(y.shape)
+        y_hat = self.inferer(x, self.net)
         y_hat = self.post1(y_hat)
+        y_hat = self.post2(y_hat)
+        # print('--------------')
+        # print(torch.unique(y_hat))
+        # print(torch.unique(y))
         return y_hat
 
     def training_step(self, batch, batch_idx):
         x, y = batch["image"], batch["label"]
         # print(f'awa {torch.unique(y)}')
         # print(y.shape)
-        y_hat = self(x)
-        y_hat = self.post2(y_hat)
+        y_hat = self.net(x)
+        y_hat = self.post1(y_hat)
         # print(torch.unique(y_hat))
         loss = self.loss(y_hat, y)
+        y_hat = self.post2(y_hat)
+        train_dice = self.dice_metric2(y_hat, y)
+        mean_train_dice, _ = self.dice_metric2.aggregate()
+        self.log("mean_train_dice", mean_train_dice, prog_bar=True)
         self.log("train_loss", loss, prog_bar=True)
+        self.dice_metric2.reset()
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch["image"], batch["label"]
-        y_hat = self.predict_step(x, batch_idx)
-        # print(torch.unique(y_hat))
+        # print('val batch')
         # print(torch.unique(y))
-        # print(y_hat.shape)
-        # print(y.shape)
-        val_dice = self.dice_metric(y_hat, y)
+        y_hat = self.predict_step(batch, batch_idx)
+        val_dice = self.dice_metric1(y_hat, y)
         # print(f'val_dice {val_dice}')
         return {"val_dice": val_dice}
 
     def on_validation_epoch_end(self):
-        mean_val_dice, _ = self.dice_metric.aggregate()
+        mean_val_dice, _ = self.dice_metric1.aggregate()
         # print(mean_val_dice)
         self.log("val_dice", mean_val_dice, prog_bar=True)
-        self.dice_metric.reset()
+        self.dice_metric1.reset()
 
 
 CHANNELS_DIMENSION = 1
