@@ -52,8 +52,8 @@ class HardUnetTrainer(pl.LightningModule):
         decay=0.01,
         device="cpu",
         model_type="2D",
-        roi_size_w = 128,
-        roi_size_h = 128
+        roi_size_w=128,
+        roi_size_h=128,
     ):
         super().__init__()
         self.net = model
@@ -76,7 +76,7 @@ class HardUnetTrainer(pl.LightningModule):
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
-        self.save_hyperparameters(ignore=['unet', 'loss'])
+        self.save_hyperparameters(ignore=["unet", "loss"])
 
     def num_parameters(self):
         return sum(p.numel() for p in self.net.parameters() if p.requires_grad)

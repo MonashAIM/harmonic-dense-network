@@ -4,6 +4,8 @@ prepare:
 train:
     roi_size_w: 128
     roi_size_h: 128
-    config: "39DS"
-    batch_size: 8
+
+    config: "68"
+    batch_size: 16
+    test_batch_size: 2
     lr: 0.002

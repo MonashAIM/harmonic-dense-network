@@ -6,10 +6,12 @@ from src.models.config_dic import config_files
 
 
 class HarDNet(nn.Module):  # pragma: no cover
-    def __init__(self, arch="68", act="relu", *args, **kwargs):
+    def __init__(self, arch="68", act="relu", out_channels=1000, *args, **kwargs):
         super().__init__()
 
-        config_path = os.path.join(os.getcwd(), "models", "configs", config_files[arch])
+        config_path = os.path.join(
+            os.getcwd(), "src", "models", "configs", config_files[arch]
+        )
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
 
@@ -64,7 +66,7 @@ class HarDNet(nn.Module):  # pragma: no cover
                 nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(),
                 nn.Dropout(drop_rate),
-                nn.Linear(ch, 1000),
+                nn.Linear(ch, out_channels),
             )
         )
 

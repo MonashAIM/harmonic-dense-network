@@ -27,7 +27,7 @@ class Conv(nn.Sequential):
         self,
         in_channel,
         out_channel,
-        act="relu",
+        act="relu6",
         kernel=3,
         stride=1,
         bias=False,
