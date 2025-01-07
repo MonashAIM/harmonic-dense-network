@@ -10,7 +10,7 @@ class HarDUNet2D(nn.Module):
         self,
         n_classes=1,
         arch="68",
-        act="relu",
+        act="relu6",
         transformer=False,
         transformer_n=4,
         keepbase=False,

@@ -22,6 +22,7 @@ stages:
     - train.lr
     - train.batch_size
     - prepare.dataset
+    - train.test_batch_size
     outs:
     - .\src\weights\latest_weight.ckpt
 params:
@@ -33,5 +34,5 @@ plots:
     x: step
 artifacts:
   best:
-    path: dvclive/artifacts/epoch=19-step=340-v1.ckpt
+    path: dvclive/artifacts/epoch=19-step=180-v1.ckpt
     type: model
