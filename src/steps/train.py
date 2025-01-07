@@ -20,9 +20,8 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    with open(f'.\src\data\{dataset_name}_dataset.json', 'r') as file:
+    with open(fr'.\src\data\{dataset_name}_dataset.json', 'r') as file:
         data = json.load(file)
-
     # datamodule = ISLESDataModule(data_properties=data, batch_size=1, device=device)
     datamodule = CovidDataModule(batch_size=batch_size, device=device, data_properties=data)
 
@@ -56,4 +55,4 @@ if __name__ == "__main__":
 
     # train
     trainer.fit(model, datamodule)
-    trainer.save_checkpoint(f"./src/weights/latest_weight.ckpt")
+    trainer.save_checkpoint(fr"./src/weights/latest_weight.ckpt")

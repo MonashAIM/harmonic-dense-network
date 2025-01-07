@@ -20,7 +20,6 @@ if __name__ == "__main__":
         "images",
         "*",
     )
-
     fold_list = [0, 1, 2, 3]
 
     img_files = glob.glob(img_path)
@@ -40,5 +39,5 @@ if __name__ == "__main__":
         else:
             break
 
-    with open(f".\src\data\{dataset_name}_dataset.json", "w") as f:
+    with open(fr".\src\data\{dataset_name}_dataset.json", "w") as f:
         json.dump(dataset, f)

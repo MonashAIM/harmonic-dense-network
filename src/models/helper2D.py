@@ -33,6 +33,8 @@ class Conv(nn.Sequential):
         kernel=3,
         stride=1,
         bias=False,
+        padding=0,
+        dilation=1,
         *args,
         **kwargs,
     ):
@@ -44,13 +46,13 @@ class Conv(nn.Sequential):
                 out_channels=out_channel,
                 kernel_size=kernel,
                 stride=stride,
-                padding=kernel // 2,
+                padding=padding,
                 bias=bias,
+                dilation=dilation
             ),
         )
 
         self.add_module(name="bn", module=nn.BatchNorm2d(num_features=out_channel))
-
         if act == "relu":
             self.add_module(name="act", module=nn.ReLU())
         elif act == "leaky":
@@ -71,6 +73,7 @@ class CombConv(nn.Sequential):
         act="relu",
         kernel=1,
         stride=1,
+        padding=0
     ):
         super().__init__()
 
@@ -81,6 +84,7 @@ class CombConv(nn.Sequential):
                 out_channel,
                 act=act,
                 kernel=kernel,
+                padding=padding
             ),
         )
         self.add_module(
@@ -93,10 +97,11 @@ class HarDBlock(nn.Module):
     def __init__(
         self,
         in_channels,
-        n_layers,
         k,
         m,
+        n_layers,
         act="relu",
+        padding=0,
         dwconv=True,
         keepbase=False,
         *args,
@@ -112,9 +117,9 @@ class HarDBlock(nn.Module):
             in_ch, out_ch, links = self.get_links(i + 1, in_channels, k, m)
             self.links.append(links)
             if dwconv:
-                layers.append(CombConv(in_ch, out_ch, act=act))
+                layers.append(CombConv(in_ch, out_ch, act=act, padding=padding))
             else:
-                layers.append(Conv(in_ch, out_ch, act=act))
+                layers.append(Conv(in_ch, out_ch, act=act, padding=padding))
             if (i % 2 == 0) or (i == n_layers - 1):
                 self.out_channels += out_ch
 

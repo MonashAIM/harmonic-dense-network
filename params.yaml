@@ -1,9 +1,9 @@
 prepare:
     dataset: "covid"
-    trainNum: 180
+    trainNum: 181
 train:
     roi_size_w: 128
     roi_size_h: 128
     config: "39DS"
-    batch_size: 10
+    batch_size: 8
     lr: 0.002
