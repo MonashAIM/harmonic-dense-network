@@ -1,26 +1,25 @@
 import os
 import glob
 import json
-import yaml
+import dvc.api
 
 if __name__ == "__main__":
-    params = yaml.safe_load(open("./src/params.yml"))
-    dataset_name = params["prepare-data"]["dataset"]
+    params = dvc.api.params_show()
+    dataset_name = params["prepare"]["dataset"]
     dataset = {}
     dataset["name"] = dataset_name
     dataset["modality"] = "CT"
 
-    dataset["trainNum"] = int(params["prepare-data"]["train_size"])
+    dataset["trainNum"] = int(params["prepare"]["trainNum"])
     dataset["training"] = []
 
     img_path = os.path.join(
         "src",
         "data",
-        dataset_name,
+        "covid",
         "images",
         "*",
     )
-
     fold_list = [0, 1, 2, 3]
 
     img_files = glob.glob(img_path)
@@ -40,5 +39,5 @@ if __name__ == "__main__":
         else:
             break
 
-    with open(f".\src\data\{dataset_name}_dataset.json", "w") as f:
+    with open(fr".\src\data\{dataset_name}_dataset.json", "w") as f:
         json.dump(dataset, f)

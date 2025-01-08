@@ -32,37 +32,39 @@ def seed_set(seed):
 class HardUnetTrainer(pl.LightningModule):
     def __init__(
         self,
-        unet,
+        model,
         loss=DiceCELoss(sigmoid=True, squared_pred=True),
         optim=AdamW,
         sched=CosineAnnealingLR,
         lr=0.0001,
         decay=0.01,
-        momentum=0.9,
         device="cpu",
         model_type="2D",
         roi_size_w=128,
         roi_size_h=128,
     ):
         super().__init__()
-        self.net = unet
-        self.loss = loss
-        self.dice_metric = DiceMetric(reduction="mean_batch", get_not_nans=True)
+        self.net = model
+        self.loss = nn.BCELoss()
+        self.dice_metric1 = DiceMetric(reduction="mean_batch", get_not_nans=True)
+        self.dice_metric2 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.max_epochs = 500
-        self.post = transforms.Compose(
-            [transforms.Activations(sigmoid=True), transforms.AsDiscrete(threshold=0.5)]
+        self.post1 = transforms.Compose(
+            [transforms.Activations(sigmoid=True)]
         )
+        self.post2 = transforms.Compose(
+            [transforms.AsDiscrete(threshold=0.5)]
+        )
+        
         if model_type == "3D":
             self.inferer = SlidingWindowInferer(
-                roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.5
+                roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.25
             )
         else:
             self.inferer = SlidingWindowInferer(
-                roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.5
+                roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.25
             )
-        self.optim = optim(
-            self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum
-        )
+        self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
         self.sched = sched(self.optim, T_max=self.max_epochs)
         self.save_hyperparameters(ignore=["unet", "loss"])
 
@@ -79,32 +81,38 @@ class HardUnetTrainer(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch, batch_idx):
-        x = batch["image"]
-        y_hat = self.inferer(x, self)
-        y_hat = self.post(y_hat)
+        x, y = batch["image"], batch["label"]
+        y_hat = self.inferer(x, self.net)
+        y_hat = self.post1(y_hat)
+        y_hat = self.post2(y_hat)
         return y_hat
 
     def training_step(self, batch, batch_idx):
         x, y = batch["image"], batch["label"]
-        y_hat = self(x)
+        y_hat = self.net(x)
+        y_hat = self.post1(y_hat)
         loss = self.loss(y_hat, y)
+        y_hat = self.post2(y_hat)
+        train_dice = self.dice_metric2(y_hat, y)
+        mean_train_dice, _ = self.dice_metric2.aggregate()
+        self.log("mean_train_dice", mean_train_dice, prog_bar=True)
         self.log("train_loss", loss, prog_bar=True)
+        self.dice_metric2.reset()
         return loss
 
     def validation_step(self, batch, batch_idx):
-        y = batch["label"]
+        x, y = batch["image"], batch["label"]
         y_hat = self.predict_step(batch, batch_idx)
-        val_dice = self.dice_metric(y_hat, y)
+        val_dice = self.dice_metric1(y_hat, y)
         return {"val_dice": val_dice}
 
     def on_validation_epoch_end(self):
-        mean_val_dice, _ = self.dice_metric.aggregate()
+        mean_val_dice, _ = self.dice_metric1.aggregate()
         self.log("val_dice", mean_val_dice, prog_bar=True)
-        self.dice_metric.reset()
+        self.dice_metric1.reset()
 
 
 CHANNELS_DIMENSION = 1
-
 
 def hardunet_train_loop(
     model: nn.Module,
