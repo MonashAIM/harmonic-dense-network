@@ -1,7 +1,7 @@
 import os
 import yaml
 import torch.nn as nn
-from src.models.helper3D import Conv, HarDBlock, DWConvTransition
+from src.models.helper2D import Conv, HarDBlock, DWConvTransition
 from src.models.config_dic import config_files
 
 
@@ -39,7 +39,7 @@ class HarDNet(nn.Module):  # pragma: no cover
         self.layers.append(Conv(first_ch[0], first_ch[1], kernel=second_kernel))
 
         if max_pool:
-            self.layers.append(nn.MaxPool3d(kernel_size=3, stride=2, padding=1))
+            self.layers.append(nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
         else:
             self.layers.append(DWConvTransition(first_ch[1], first_ch[1], stride=2))
 
@@ -56,14 +56,14 @@ class HarDNet(nn.Module):  # pragma: no cover
             ch = ch_list[i]
             if downSamp[i] == 1:
                 if max_pool:
-                    self.layers.append(nn.MaxPool3d(kernel_size=2, stride=2))
+                    self.layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
                 else:
                     self.layers.append(DWConvTransition(ch, stride=2))
 
         ch = ch_list[blocks - 1]
         self.layers.append(
             nn.Sequential(
-                nn.AdaptiveAvgPool3d((1, 1)),
+                nn.AdaptiveAvgPool2d((1, 1)),
                 nn.Flatten(),
                 nn.Dropout(drop_rate),
                 nn.Linear(ch, out_channels),
