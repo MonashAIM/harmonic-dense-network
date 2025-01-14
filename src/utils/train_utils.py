@@ -33,7 +33,7 @@ class HardUnetTrainer(pl.LightningModule):
     def __init__(
         self,
         model,
-        loss=DiceCELoss(sigmoid=True, squared_pred=True),
+        loss=DiceCELoss,
         optim=AdamW,
         sched=CosineAnnealingLR,
         lr=0.0001,
@@ -45,7 +45,7 @@ class HardUnetTrainer(pl.LightningModule):
     ):
         super().__init__()
         self.net = model
-        self.loss = nn.BCELoss()
+        self.loss = loss()
         self.dice_metric1 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.dice_metric2 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.max_epochs = 500
@@ -65,7 +65,7 @@ class HardUnetTrainer(pl.LightningModule):
                 roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.25
             )
         self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
-        self.sched = sched(self.optim, T_max=self.max_epochs)
+        self.sched = sched(self.optim)
         self.save_hyperparameters(ignore=["unet", "loss"])
 
     def num_parameters(self):
@@ -81,14 +81,14 @@ class HardUnetTrainer(pl.LightningModule):
         return [optimizer], [scheduler]
 
     def predict_step(self, batch, batch_idx):
-        x, y = batch["image"], batch["label"]
-        y_hat = self.inferer(x, self.net)
+        x, y = batch["image"].float(), batch["label"].float()
+        y_hat = self.net(x)
         y_hat = self.post1(y_hat)
         y_hat = self.post2(y_hat)
         return y_hat
 
     def training_step(self, batch, batch_idx):
-        x, y = batch["image"], batch["label"]
+        x, y = batch["image"].float(), batch["label"].float()
         y_hat = self.net(x)
         y_hat = self.post1(y_hat)
         loss = self.loss(y_hat, y)
@@ -101,7 +101,7 @@ class HardUnetTrainer(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch["image"], batch["label"]
+        x, y = batch["image"].float(), batch["label"].float()
         y_hat = self.predict_step(batch, batch_idx)
         val_dice = self.dice_metric1(y_hat, y)
         return {"val_dice": val_dice}
