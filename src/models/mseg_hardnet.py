@@ -213,7 +213,6 @@ class HarDMSEG(nn.Module):
         x3 = hardnetout[2]
         x4 = hardnetout[3]
         
-        # print(x2.shape, x3.shape, x4.shape)
         x2_rfb = self.rfb2_1(x2)        # channel -> 32
         x3_rfb = self.rfb3_1(x3)        # channel -> 32
         x4_rfb = self.rfb4_1(x4)        # channel -> 32
@@ -225,10 +224,10 @@ class HarDMSEG(nn.Module):
         return lateral_map_5 #, lateral_map_4, lateral_map_3, lateral_map_2
 
 
-if __name__ == '__main__':
-    import torch
-    awa = HarDMSEG(arch='39DS')
-    # awa.get_layers()
-    test = torch.rand(1, 1, 224, 224)
-    out = awa(test)
-    print(out.shape)
+# if __name__ == '__main__':
+#    import torch
+#    awa = HarDMSEG(arch='39DS')
+#    # awa.get_layers()
+#    test = torch.rand(1, 1, 224, 224)
+#    out = awa(test)
+#    print(out.shape)
