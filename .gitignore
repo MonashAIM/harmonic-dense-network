@@ -170,7 +170,7 @@ src/data/MedNIST
 
 .guild/
 .weights/
-.runs/
+.runs/*
 
 .gdrive/
 /data_explore.ipynb
