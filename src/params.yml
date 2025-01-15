@@ -2,6 +2,7 @@ prepare-data:
     dataset: "covid"
     train_size: 2100
 train:
+    arch: "FC"
     optimizer: "SGD"
     roi_size_w: 128
     roi_size_h: 128
