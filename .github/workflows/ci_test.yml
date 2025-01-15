@@ -1,0 +1,37 @@
+name: CI Tests Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # New commit on branch cancels running workflows of the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  COV_MIN: 60
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip" # caching pip dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ci_requirements.txt
+      - name: Lint check
+        run: |
+          ruff check
+      - name: Test with pytest
+        run: |
+          pytest --cov=. --cov-fail-under=$COV_MIN
