@@ -6,7 +6,6 @@ from src.models.mseg_hardnet import HarDMSEG
 import torch
 import json
 import pytorch_lightning as pl
-from dvclive.lightning import DVCLiveLogger
 import wandb
 from pytorch_lightning.loggers.wandb import WandbLogger
 
@@ -22,7 +21,7 @@ if __name__ == "__main__":  # pragma: no cover
     wandb.init(project="awa")
 
     # datamodule = ISLESDataModule(data_properties=data, batch_size=1, device=device)
-    with open(fr'.\src\data\covid_dataset.json', 'r') as file:
+    with open(rf".\src\data\covid_dataset.json", "r") as file:
         data = json.load(file)
     datamodule = CovidDataModule(batch_size=32, device=device, data_properties=data)
 
@@ -52,12 +51,12 @@ if __name__ == "__main__":  # pragma: no cover
         logger=logger,
         log_every_n_steps=1,
         check_val_every_n_epoch=20,
+        overfit_batches=1,
     )
 
     # train
     trainer.fit(model, datamodule)
     wandb.finish()
-
 
     # from monai.inferers import SlidingWindowInferer
     # from monai.metrics import DiceMetric

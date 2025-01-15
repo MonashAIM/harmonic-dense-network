@@ -1,6 +1,7 @@
 from src.utils.train_utils import HardUnetTrainer
 from src.data.covid_dataset import CovidDataModule
 from src.models.FCHardnet import FCHardnet
+from src.models.mseg_hardnet import HarDMSEG
 from torch.nn import functional as F
 import torch
 import json
@@ -8,11 +9,15 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 import yaml
 
+pl.seed_everything(42, workers=True)
+
 if __name__ == "__main__":
     params = yaml.safe_load(open("./src/params.yml"))
 
+    arch = params["train"]["arch"]
     config_name = params["train"]["config"]
     dataset_name = params["prepare-data"]["dataset"]
+    train_size = params["prepare-data"]["train_size"]
     roi_size_w = params["train"]["roi_size_w"]
     roi_size_h = params["train"]["roi_size_h"]
     batch_size = params["train"]["batch_size"]
@@ -46,19 +51,24 @@ if __name__ == "__main__":
         f"-----------Total number of validation batches: {len(val_loader)} ---------------------"
     )
 
-    model = FCHardnet(n_classes=1, in_channels=1).to(device)
-
-    loss_fn = F.binary_cross_entropy
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = None
+    if arch == "FC":
+        model = FCHardnet(n_classes=1, in_channels=1).to(device)
+    elif arch == "MSEG":
+        model = HarDMSEG(arch="68")
+    else:
+        Exception(f"Unindentifiable architecture:{arch}")
 
     optimizer = None
     if opt == "SGD":
         optimizer = torch.optim.SGD
     elif opt == "AdamW":
         optimizer = torch.optim.AdamW
+    else:
+        Exception(f"Unindentifiable optimizers:{opt}")
 
     model = HardUnetTrainer(
-        unet=model,
+        model=model,
         device=device,
         model_type=model.get_model_type(),
         optim=optimizer,
@@ -67,7 +77,22 @@ if __name__ == "__main__":
         momentum=momentum,
     )
 
-    logger = TensorBoardLogger("tb_logs", name="test_model_name")
+    logger = TensorBoardLogger(
+        "runs", name=f"{arch}_{dataset_name}_{lr}_{opt}_{decay}_{momentum}"
+    )
+
+    logger.log_hyperparams(
+        params=
+            {"arch": arch,
+            "train_size": train_size,
+            "batch_size": batch_size,
+            "lr": lr,
+            "opt": opt,
+            "decay": decay,
+            "momentum": momentum}
+        ,
+        metrics={},
+    )
 
     # initialize Lightning's trainer.
     trainer = pl.Trainer(
@@ -81,4 +106,3 @@ if __name__ == "__main__":
 
     # train
     trainer.fit(model, datamodule)
-    trainer.save_checkpoint(f"./src/weights/latest_weight.ckpt")
