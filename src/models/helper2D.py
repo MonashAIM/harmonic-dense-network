@@ -48,7 +48,7 @@ class Conv(nn.Sequential):
                 stride=stride,
                 padding=padding,
                 bias=bias,
-                dilation=dilation
+                dilation=dilation,
             ),
         )
 
@@ -64,32 +64,19 @@ class Conv(nn.Sequential):
         else:
             print("Unknown activation function")
 
-
     def forward(self, x):
         return super().forward(x)
 
 
 class CombConv(nn.Sequential):
     def __init__(
-        self,
-        in_channel,
-        out_channel,
-        act="relu6",
-        kernel=1,
-        stride=1,
-        padding=0
+        self, in_channel, out_channel, act="relu6", kernel=1, stride=1, padding=0
     ):
         super().__init__()
 
         self.add_module(
             "conv",
-            Conv(
-                in_channel,
-                out_channel,
-                act=act,
-                kernel=kernel,
-                padding=padding
-            ),
+            Conv(in_channel, out_channel, act=act, kernel=kernel, padding=padding),
         )
         self.add_module(
             "dwconv",

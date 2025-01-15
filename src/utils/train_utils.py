@@ -38,6 +38,7 @@ class HardUnetTrainer(pl.LightningModule):
         sched=CosineAnnealingLR,
         lr=0.0001,
         decay=0.01,
+        momentum=0.9,
         device="cpu",
         model_type="2D",
         roi_size_w=128,
@@ -49,13 +50,9 @@ class HardUnetTrainer(pl.LightningModule):
         self.dice_metric1 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.dice_metric2 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.max_epochs = 500
-        self.post1 = transforms.Compose(
-            [transforms.Activations(sigmoid=True)]
-        )
-        self.post2 = transforms.Compose(
-            [transforms.AsDiscrete(threshold=0.5)]
-        )
-        
+        self.post1 = transforms.Compose([transforms.Activations(sigmoid=True)])
+        self.post2 = transforms.Compose([transforms.AsDiscrete(threshold=0.5)])
+
         if model_type == "3D":
             self.inferer = SlidingWindowInferer(
                 roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.25
@@ -64,7 +61,9 @@ class HardUnetTrainer(pl.LightningModule):
             self.inferer = SlidingWindowInferer(
                 roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.25
             )
-        self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
+        self.optim = optim(
+            self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum
+        )
         self.sched = sched(self.optim, T_max=self.max_epochs)
         self.save_hyperparameters(ignore=["unet", "loss"])
 
@@ -113,6 +112,7 @@ class HardUnetTrainer(pl.LightningModule):
 
 
 CHANNELS_DIMENSION = 1
+
 
 def hardunet_train_loop(
     model: nn.Module,
