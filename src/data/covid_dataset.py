@@ -33,9 +33,21 @@ class CovidDataModule(pl.LightningDataModule):
 
         for sample in self.data_properties["training"]:
             if sample["fold"] == self.fold:
-                val_data.append({"image": sample["image"], "label": sample["label"]})
+                val_data.append(
+                    {
+                        "image": sample["image"],
+                        "label": sample["label"],
+                        "path": sample["image"],
+                    }
+                )
             else:
-                train_data.append({"image": sample["image"], "label": sample["label"]})
+                train_data.append(
+                    {
+                        "image": sample["image"],
+                        "label": sample["label"],
+                        "path": sample["image"],
+                    }
+                )
 
         self.train_set = Dataset(
             train_data, transform=self.train_transform, **self.dataset_kwargs
