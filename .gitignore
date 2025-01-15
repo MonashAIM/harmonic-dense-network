@@ -169,8 +169,8 @@ src/data/MedNIST
 
 
 .guild/
-.weights/
-.runs/
+weights/
+runs/*
 
-.gdrive/
+gdrive/
 /data_explore.ipynb
