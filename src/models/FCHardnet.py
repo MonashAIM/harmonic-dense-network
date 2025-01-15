@@ -8,14 +8,10 @@ class FCHardnet(nn.Module):
     def __init__(self, n_classes=19, in_channels=1):
         super(FCHardnet, self).__init__()
         first_ch = [16, 24, 32, 48]
-        # ch_list = [64, 96, 160, 224, 320]
+        ch_list = [64, 96, 160, 224, 320]
         grmul = 1.7
-        # gr = [10, 16, 18, 24, 32]
-        # n_layers = [4, 4, 8, 8, 8]
-
-        ch_list = [192, 256, 320, 480, 720, 1280]
-        gr = [24, 24, 28, 36, 48, 256]
-        n_layers = [8, 16, 16, 16, 16, 4]
+        gr = [10, 16, 18, 24, 32]
+        n_layers = [4, 4, 8, 8, 8]
 
         blks = len(n_layers)
         self.model_type = "2D"
