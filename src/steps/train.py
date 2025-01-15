@@ -106,3 +106,4 @@ if __name__ == "__main__":
 
     # train
     trainer.fit(model, datamodule)
+    trainer.save_checkpoint(f"./weights/{arch}_{dataset_name}_{lr}_{opt}_{decay}_{momentum}.pth")
