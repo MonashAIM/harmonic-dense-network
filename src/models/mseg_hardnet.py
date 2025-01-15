@@ -188,10 +188,18 @@ class HarDMSEG(nn.Module):
     # res2net based encoder decoder
     def __init__(self, act='relu', arch='68',channel=32):
         super().__init__()
+        config_path = os.path.join(os.getcwd(), "src", "models", "configs", config_files[arch])
+        with open(config_path, "r") as file:
+            config = yaml.safe_load(file)
+        rfb1 = config.get("rfb")[0][0]
+        rfb2 = config.get("rfb")[0][1]
+        rfb3 = config.get("rfb")[0][2]
+        # print(arch, rfb1, rfb2, rfb3)
+
         self.relu = nn.ReLU(True)
-        self.rfb2_1 = RFB(320, channel)
-        self.rfb3_1 = RFB(640, channel)
-        self.rfb4_1 = RFB(1024, channel)
+        self.rfb2_1 = RFB(rfb1, channel)
+        self.rfb3_1 = RFB(rfb2, channel)
+        self.rfb4_1 = RFB(rfb3, channel)
         self.agg1 = Aggr(ch=32)
         self.hardnet = HarDNet(arch=arch, act=act)
         
@@ -217,9 +225,9 @@ class HarDMSEG(nn.Module):
 
 
 # if __name__ == '__main__':
-#     import torch
-#     awa = HarDMSEG(arch='68')
-#     # awa.get_layers()
-#     test = torch.rand(1, 1, 224, 224)
-#     out = awa(test)
-#     print(out.shape)
+#    import torch
+#    awa = HarDMSEG(arch='39DS')
+#    # awa.get_layers()
+#    test = torch.rand(1, 1, 224, 224)
+#    out = awa(test)
+#    print(out.shape)

@@ -38,21 +38,20 @@ if __name__ == "__main__":  # pragma: no cover
         break
 
     unet = HarDMSEG(arch="68")
-    lr = 0.0015
+    lr = 0.00015
     loss = DiceCELoss
 
-    model = HardUnetTrainer(model=unet, roi_size_h=64, roi_size_w=64)
+    model = HardUnetTrainer(model=unet, roi_size_h=64, roi_size_w=64, lr=lr)
     logger = WandbLogger()
 
     # initialize Lightning's trainer.
     trainer = pl.Trainer(
         accelerator="gpu",
         devices=1,
-        max_epochs=200,
+        max_epochs=400,
         logger=logger,
         log_every_n_steps=1,
         check_val_every_n_epoch=20,
-        overfit_batches=1
     )
 
     # train
