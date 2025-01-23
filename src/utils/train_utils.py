@@ -8,13 +8,13 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
 from pathlib import Path
-from monai.losses import DiceCELoss
+from monai.losses import DiceCELoss, DiceLoss
 import pytorch_lightning as pl
 from torch.optim import AdamW
 import monai.transforms as transforms
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from monai.metrics import DiceMetric
-from monai.inferers import SlidingWindowInferer
+from monai.inferers import SlidingWindowInferer, SliceInferer
 
 
 def seed_set(seed):
@@ -33,14 +33,13 @@ class HardUnetTrainer(pl.LightningModule):
     def __init__(
         self,
         model,
-        loss=DiceCELoss,
+        loss=DiceLoss,
         optim=AdamW,
         sched=CosineAnnealingLR,
         lr=0.0001,
         decay=0.01,
         momentum=0.9,
         device="cpu",
-        model_type="2D",
         roi_size_w=128,
         roi_size_h=128,
     ):
@@ -52,19 +51,17 @@ class HardUnetTrainer(pl.LightningModule):
         self.max_epochs = 500
         self.post1 = transforms.Compose([transforms.Activations(sigmoid=True)])
         self.post2 = transforms.Compose([transforms.AsDiscrete(threshold=0.5)])
-
-        if model_type == "3D":
-            self.inferer = SlidingWindowInferer(
-                roi_size=(roi_size_w, roi_size_h, 64), sw_batch_size=1, overlap=0.25
-            )
+        
+        if isinstance(optim, torch.optim.SGD):
+            self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum)
         else:
-            self.inferer = SlidingWindowInferer(
-                roi_size=(roi_size_w, roi_size_h), sw_batch_size=1, overlap=0.25
-            )
-        self.optim = optim(
-            self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum
-        )
-        self.sched = sched(self.optim, T_max=self.max_epochs)
+            self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
+        
+        if sched is not None:
+            if sched == torch.optim.lr_scheduler.CosineAnnealingLR:
+                self.sched = sched(self.optim, T_max=self.max_epochs)
+            else:
+                self.sched = sched(self.optim)
         self.save_hyperparameters(ignore=["unet", "loss"])
 
     def num_parameters(self):
