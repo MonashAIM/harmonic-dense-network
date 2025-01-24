@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from data.ISLES_dataset import ISLESDataset
+from data.ISLES_dataset_2D import ISLESDataset
 
 
 class TestISLESDataset(TestCase):

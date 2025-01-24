@@ -1,14 +1,20 @@
 prepare-data:
-    dataset: "covid"
+    dataset: "isles"
     train_size: 2100
+    modalities: ['dwi']
 train:
-    arch: "MSEG"
-    optimizer: "SGD"
+    model_type: "MSEG"
+    arch: "85"
+    optimizer: "AdamW"
+    scheduler: 'CosineAnnealingLR'
+    loss: 'bceloss'
     roi_size_w: 128
     roi_size_h: 128
-    config: "68"
-    batch_size: 16
+    batch_size: 64
     test_batch_size: 5
     decay: 0.0005
     momentum: 0.9
     lr: 0.002
+    max_epochs: 20
+    log_steps: 5
+    check_val: 5

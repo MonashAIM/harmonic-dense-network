@@ -1,6 +1,6 @@
 from monai.losses import DiceCELoss
 from src.utils.train_utils import HardUnetTrainer
-from src.data.ISLES_dataset import ISLESDataModule
+from data.ISLES_dataset_2D import ISLESDataModule
 from src.data.covid_dataset import CovidDataModule
 from src.models.mseg_hardnet import HarDMSEG
 import torch
