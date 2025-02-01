@@ -8,6 +8,7 @@ import cv2
 from monai.data.image_reader import PILReader
 import torch
 
+
 class ISLESDataModule(pl.LightningDataModule):
     def __init__(
         self,
@@ -39,35 +40,51 @@ class ISLESDataModule(pl.LightningDataModule):
 
         for sample in self.data_properties["training"]:
             if train_size is not None and train_size == len(train_data):
-                    break
-            image_path = os.path.join(os.getcwd(), "src", "data", "isles_22", sample["image"][0])
-            label_path = os.path.join(os.getcwd(), "src", "data", "isles_22", sample["label"])
+                break
+            image_path = os.path.join(
+                os.getcwd(), "src", "data", "isles_22", sample["image"][0]
+            )
+            label_path = os.path.join(
+                os.getcwd(), "src", "data", "isles_22", sample["label"]
+            )
 
             image_data = nib.load(image_path).get_fdata()
             label_data = nib.load(label_path).get_fdata()
             x_dim, y_dim, z_dim = image_data.shape
 
             for i in range(z_dim):
-                
                 # Extract the 2D slice from the 3D data and mask
                 slice_data = image_data[:, :, i]
                 mask_slice_data = label_data[:, :, i]
 
-                # Reject if the mask slice has enough nonzero pixels/lesion 
-                if np.count_nonzero(mask_slice_data) / mask_slice_data.size >= mask_rejection_threshold:
+                # Reject if the mask slice has enough nonzero pixels/lesion
+                if (
+                    np.count_nonzero(mask_slice_data) / mask_slice_data.size
+                    >= mask_rejection_threshold
+                ):
                     slice_data_cropped = slice_data[10:190, 40:220]
-                    slice_data_resized = cv2.resize(slice_data_cropped, (192, 192), interpolation=cv2.INTER_LINEAR)
+                    slice_data_resized = cv2.resize(
+                        slice_data_cropped, (192, 192), interpolation=cv2.INTER_LINEAR
+                    )
                     if np.std(slice_data_resized, ddof=1) == 0:
                         break
-                    data_norm = (slice_data_resized - np.mean(slice_data_resized)) / np.std(slice_data_resized, ddof=1)
+                    data_norm = (
+                        slice_data_resized - np.mean(slice_data_resized)
+                    ) / np.std(slice_data_resized, ddof=1)
                     data_norm = torch.from_numpy(data_norm)
-                    data_norm = torch.unsqueeze(data_norm,0)
+                    data_norm = torch.unsqueeze(data_norm, 0)
 
                     # Resize the mask
                     mask_slice_data_cropped = mask_slice_data[10:190, 40:220]
-                    mask_slice_data_resized = cv2.resize(mask_slice_data_cropped, (192, 192), interpolation=cv2.INTER_NEAREST)
+                    mask_slice_data_resized = cv2.resize(
+                        mask_slice_data_cropped,
+                        (192, 192),
+                        interpolation=cv2.INTER_NEAREST,
+                    )
                     mask_slice_data_resized = torch.from_numpy(mask_slice_data_resized)
-                    mask_slice_data_resized = torch.unsqueeze(mask_slice_data_resized,0)
+                    mask_slice_data_resized = torch.unsqueeze(
+                        mask_slice_data_resized, 0
+                    )
 
                     if sample["fold"] == self.fold:
                         altered_data = {
@@ -84,15 +101,11 @@ class ISLESDataModule(pl.LightningDataModule):
                             "image": data_norm,
                             "label": mask_slice_data_resized,
                         }
-                        train_data.append(altered_data) 
+                        train_data.append(altered_data)
 
-        self.train_set = Dataset(
-            train_data, **self.dataset_kwargs
-        )
+        self.train_set = Dataset(train_data, **self.dataset_kwargs)
 
-        self.val_set = Dataset(
-            val_data, **self.dataset_kwargs
-        )
+        self.val_set = Dataset(val_data, **self.dataset_kwargs)
 
     def train_dataloader(self):
         return DataLoader(
@@ -114,7 +127,7 @@ class ISLESDataModule(pl.LightningDataModule):
             batch_size=1,
             num_workers=self.num_workers,
         )
-    
+
     def get_train_transform(self):
         train_transform = [
             transforms.LoadImaged(
@@ -128,8 +141,6 @@ class ISLESDataModule(pl.LightningDataModule):
                 ["image", "label"], pixdim=(1.2, 1.2), mode=("nearest", "nearest")
             ),
             transforms.Resized(keys=("image", "label"), spatial_size=(128, 128)),
-            # transforms.SqueezeDimd("image", dim=0),
-            # transforms.SqueezeDimd("label", dim=0),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(["image", "label"], device=self.device),
@@ -155,14 +166,15 @@ class ISLESDataModule(pl.LightningDataModule):
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(["image", "label"], device=self.device),
-            
         ]
         return transforms.Compose(val_transform)
-    
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     import json
     import torch
-    with open(fr'.\src\data\dataset.json', 'r') as file:
+
+    with open(rf".\src\data\dataset.json", "r") as file:
         data = json.load(file)
     datamodule = ISLESDataModule(batch_size=32, data_properties=data)
 

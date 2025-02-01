@@ -82,15 +82,15 @@ if __name__ == "__main__":
     )
 
     logger.log_hyperparams(
-        params=
-            {"arch": arch,
+        params={
+            "arch": arch,
             "train_size": train_size,
             "batch_size": batch_size,
             "lr": lr,
             "opt": opt,
             "decay": decay,
-            "momentum": momentum}
-        ,
+            "momentum": momentum,
+        },
         metrics={},
     )
 
@@ -106,4 +106,6 @@ if __name__ == "__main__":
 
     # train
     trainer.fit(model, datamodule)
-    trainer.save_checkpoint(f"./weights/{arch}_{dataset_name}_{lr}_{opt}_{decay}_{momentum}.pth")
+    trainer.save_checkpoint(
+        f"./weights/{arch}_{dataset_name}_{lr}_{opt}_{decay}_{momentum}.pth"
+    )
