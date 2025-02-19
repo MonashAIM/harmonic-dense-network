@@ -8,26 +8,50 @@ from torch import optim
 from torch.utils.data import DataLoader
 from torchmetrics.functional.segmentation import generalized_dice_score as dice
 from pathlib import Path
-from monai.losses import DiceCELoss, DiceLoss
+from monai.losses import DiceLoss
 import pytorch_lightning as pl
 from torch.optim import AdamW
 import monai.transforms as transforms
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from monai.metrics import DiceMetric
-from monai.inferers import SlidingWindowInferer, SliceInferer
+from monai.networks.blocks import CRF
+from monai.transforms import Transform
+from src.utils.crf_class import CRF
 
+# class CRFPost(Transform):
+#     def __init__(
+#         self,
+#         unary: str,
+#         pairwise: str,
+#         post_proc_label: str = 'postproc',
+#         iterations: int = 5, 
+#         bilateral_weight: float = 3.0,
+#         gaussian_weight: float = 1.0,
+#         bilateral_spatial_sigma: float = 5.0,
+#         bilateral_color_sigma: float = 0.5,
+#         gaussian_spatial_sigma: float = 5.0,
+#         compatibility_kernel_range: float = 1,
+#     ):
+#         self.unary = unary
+#         self.pairwise = pairwise
+#         self.post_proc_label = post_proc_label
+#         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-def seed_set(seed):
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
-    random.seed(seed)
-    np.random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
+#         self.crf_layer = CRF(
+#                 iterations, 
+#                 bilateral_weight,
+#                 gaussian_weight,
+#                 bilateral_spatial_sigma,
+#                 bilateral_color_sigma,
+#                 gaussian_spatial_sigma,
+#                 compatibility_kernel_range
+#                 )
 
+#     def __call__(self, d):
+#         unary_term = d[self.unary].float().to(self.device)
+#         pairwise_term = d[self.pairwise].float().to(self.device)
+#         d[self.post_proc_label] = self.crf_layer(unary_term, pairwise_term)
+#         return d
 
 class HardUnetTrainer(pl.LightningModule):
     def __init__(
@@ -49,8 +73,10 @@ class HardUnetTrainer(pl.LightningModule):
         self.dice_metric1 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.dice_metric2 = DiceMetric(reduction="mean_batch", get_not_nans=True)
         self.max_epochs = 500
-        self.post1 = transforms.Compose([transforms.Activations(sigmoid=True)])
-        self.post2 = transforms.Compose([transforms.AsDiscrete(threshold=0.5)])
+        self.post1 = transforms.Activations(sigmoid=True)
+        # self.post2 = CRFPost(unary='logits', pairwise='image', post_proc_label='pred')
+        self.post2 = CRF(n_spatial_dims=2)
+        self.post3 = transforms.AsDiscrete(threshold=0.5)
         
         if isinstance(optim, torch.optim.SGD):
             self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum)
@@ -81,14 +107,16 @@ class HardUnetTrainer(pl.LightningModule):
         y_hat = self.net(x)
         y_hat = self.post1(y_hat)
         y_hat = self.post2(y_hat)
+        y_hat = self.post3(y_hat)
         return y_hat
 
     def training_step(self, batch, batch_idx):
         x, y = batch["image"].float(), batch["label"].float()
         y_hat = self.net(x)
         y_hat = self.post1(y_hat)
-        loss = self.loss(y_hat, y)
         y_hat = self.post2(y_hat)
+        loss = self.loss(y_hat, y)
+        y_hat = self.post3(y_hat)
         train_dice = self.dice_metric2(y_hat, y)
         mean_train_dice, _ = self.dice_metric2.aggregate()
         self.log("mean_train_dice", mean_train_dice, prog_bar=True)
