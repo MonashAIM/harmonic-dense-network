@@ -43,8 +43,8 @@ class ISLESDataModule_2D(pl.LightningDataModule):
             for sample in self.data_properties["training"]:
                 if train_size is not None and train_size == len(train_data):
                         break
-                image_path = os.path.join(os.getcwd(), "src", "data", "isles_22", sample["image"][mod])
-                label_path = os.path.join(os.getcwd(), "src", "data", "isles_22", sample["label"])
+                image_path = os.path.join(os.getcwd(), "src", "data", "ISLES-2022", sample["image"][mod])
+                label_path = os.path.join(os.getcwd(), "src", "data", "ISLES-2022", sample["label"])
 
                 image_data = nib.load(image_path).get_fdata()
                 label_data = nib.load(label_path).get_fdata()
@@ -132,6 +132,8 @@ class ISLESDataModule_2D(pl.LightningDataModule):
             transforms.Resized(keys=("image", "label"), spatial_size=(128, 128)),
             # transforms.SqueezeDimd("image", dim=0),
             # transforms.SqueezeDimd("label", dim=0),
+            transforms.RandAdjustContrast(prob=0.2),
+            transforms.RandCoarseDropout(holes=100, spatial_size=10, prob=0.1),
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(["image", "label"], device=self.device),
