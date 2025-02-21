@@ -163,7 +163,7 @@ cython_debug/
 
 #ixi_tiny images
 src/data/ixi_tiny/
-src/data/ISLES-2022/
+src/data/isles_22/
 src/data/covid
 src/data/MedNIST
 
@@ -175,3 +175,4 @@ runs/*
 gdrive/
 /data_explore.ipynb
 awa.ipynb
+slurm-hardnet-job-script.slurm

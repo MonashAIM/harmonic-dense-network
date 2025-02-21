@@ -8,6 +8,7 @@ import cv2
 from monai.data.image_reader import PILReader
 import torch
 
+
 class ISLESDataModule_3D(pl.LightningDataModule):
     def __init__(
         self,
@@ -41,21 +42,29 @@ class ISLESDataModule_3D(pl.LightningDataModule):
             for sample in self.data_properties["training"]:
                 if train_size is not None and train_size == len(train_data):
                     break
-                                
-                if sample["fold"] == self.fold:                        
+
+                if sample["fold"] == self.fold:
                     altered_data = {
                         "id": sample["id"],
                         "fold": sample["fold"],
-                        "image": os.path.join(os.getcwd(), "src", "data", "isles_22", sample["image"][mod]),
-                        "label": os.path.join(os.getcwd(), "src", "data", "isles_22", sample["label"]),
+                        "image": os.path.join(
+                            os.getcwd(), "src", "data", "isles_22", sample["image"][mod]
+                        ),
+                        "label": os.path.join(
+                            os.getcwd(), "src", "data", "isles_22", sample["label"]
+                        ),
                     }
                     val_data.append(altered_data)
                 else:
                     altered_data = {
                         "id": sample["id"],
                         "fold": sample["fold"],
-                        "image": os.path.join(os.getcwd(), "src", "data", "isles_22", sample["image"][mod]),
-                        "label": os.path.join(os.getcwd(), "src", "data", "isles_22", sample["label"]),
+                        "image": os.path.join(
+                            os.getcwd(), "src", "data", "isles_22", sample["image"][mod]
+                        ),
+                        "label": os.path.join(
+                            os.getcwd(), "src", "data", "isles_22", sample["label"]
+                        ),
                     }
                     train_data.append(altered_data)
 
@@ -87,7 +96,7 @@ class ISLESDataModule_3D(pl.LightningDataModule):
             batch_size=1,
             num_workers=self.num_workers,
         )
-    
+
     def get_train_transform(self):
         train_transform = [
             transforms.LoadImaged(
@@ -126,7 +135,6 @@ class ISLESDataModule_3D(pl.LightningDataModule):
             transforms.NormalizeIntensityd("image", nonzero=True, channel_wise=True),
             transforms.AsDiscreted("label", threshold=0.5),
             transforms.ToTensord(["image", "label"], device=self.device),
-            
         ]
         return transforms.Compose(val_transform)
 
@@ -136,23 +144,26 @@ class ISLESDataModule_3D(pl.LightningDataModule):
             out.append(0)
             return out
         for mod in modalities:
-            if mod == 'dwi':
+            if mod == "dwi":
                 out.append(0)
-            elif mod == 'adc':
+            elif mod == "adc":
                 out.append(1)
-            elif mod == 'flair':
+            elif mod == "flair":
                 out.append(2)
         return out
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import json
     import torch
-    os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-    with open(fr'.\src\data\ISLES_dataset.json', 'r') as file:
+    os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+    with open(rf".\src\data\ISLES_dataset.json", "r") as file:
         data = json.load(file)
-    datamodule = ISLESDataModule_3D(batch_size=32, data_properties=data, modalities=['dwi', 'adc'])
+    datamodule = ISLESDataModule_3D(
+        batch_size=32, data_properties=data, modalities=["dwi", "adc"]
+    )
 
     # # Total image to read in. In this case, it's 10 (for both train and val). With split = 0.7, 7 wll go to train and 3 will go to val
     datamodule.setup_2D()

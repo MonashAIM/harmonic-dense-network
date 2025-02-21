@@ -51,18 +51,20 @@ class HardUnetTrainer(pl.LightningModule):
         self.max_epochs = 500
         self.post1 = transforms.Compose([transforms.Activations(sigmoid=True)])
         self.post2 = transforms.Compose([transforms.AsDiscrete(threshold=0.5)])
-        
+
         if isinstance(optim, torch.optim.SGD):
-            self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum)
+            self.optim = optim(
+                self.net.parameters(), lr=lr, weight_decay=decay, momentum=momentum
+            )
         else:
             self.optim = optim(self.net.parameters(), lr=lr, weight_decay=decay)
-        
+
         if sched is not None:
             if sched == torch.optim.lr_scheduler.CosineAnnealingLR:
                 self.sched = sched(self.optim, T_max=self.max_epochs)
             else:
                 self.sched = sched(self.optim)
-        self.save_hyperparameters(ignore=["unet", "loss"])
+        self.save_hyperparameters(ignore=["unet", "loss", "model"])
 
     def num_parameters(self):
         return sum(p.numel() for p in self.net.parameters() if p.requires_grad)
@@ -91,8 +93,8 @@ class HardUnetTrainer(pl.LightningModule):
         y_hat = self.post2(y_hat)
         train_dice = self.dice_metric2(y_hat, y)
         mean_train_dice, _ = self.dice_metric2.aggregate()
-        self.log("mean_train_dice", mean_train_dice, prog_bar=True)
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("mean_train_dice", mean_train_dice, on_step=False, on_epoch=True)
+        self.log("train_loss", loss, on_step=False, on_epoch=True)
         self.dice_metric2.reset()
         return loss
 
@@ -102,9 +104,12 @@ class HardUnetTrainer(pl.LightningModule):
         val_dice = self.dice_metric1(y_hat, y)
         return {"val_dice": val_dice}
 
+    def on_train_epoch_end(self):
+        print(f"Epoch {self.current_epoch} ended")
+
     def on_validation_epoch_end(self):
         mean_val_dice, _ = self.dice_metric1.aggregate()
-        self.log("val_dice", mean_val_dice, prog_bar=True)
+        self.log("val_dice", mean_val_dice, on_step=False, on_epoch=True)
         self.dice_metric1.reset()
 
 

@@ -200,7 +200,9 @@ class HarDMSEG(nn.Module):
     # res2net based encoder decoder
     def __init__(self, act="relu", arch="68", channel=32):
         super().__init__()
-        config_path = os.path.join(os.getcwd(), "src", "models", "configs", config_files[arch])
+        config_path = os.path.join(
+            os.getcwd(), "src", "models", "configs", config_files[arch]
+        )
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
         rfb1 = config.get("rfb")[0][0]
