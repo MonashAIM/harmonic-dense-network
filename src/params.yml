@@ -1,20 +1,22 @@
 prepare-data:
     dataset: "isles"
     train_size: 2100
-    modalities: ['dwi']
+    modalities: ["dwi"]
 train:
-    model_type: "MSEG"
+    path_option: "slurm"
+    model_type: "FC"
     arch: "85"
     optimizer: "AdamW"
-    scheduler: 'CosineAnnealingLR'
-    loss: 'bceloss'
+    scheduler: "CosineAnnealingLR"
+    loss: "diceloss"
+    logger: "csv"
     roi_size_w: 128
     roi_size_h: 128
-    batch_size: 64
-    test_batch_size: 5
+    batch_size: 16
+    test_batch_size: 16
     decay: 0.0005
     momentum: 0.9
     lr: 0.002
-    max_epochs: 20
-    log_steps: 5
-    check_val: 5
+    max_epochs: 400
+    check_val: 10
+    num_worker: 5
